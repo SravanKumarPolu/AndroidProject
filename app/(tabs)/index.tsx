@@ -18,7 +18,15 @@ import { AchievementCard } from '@/components/AchievementCard';
 import { AchievementCelebration } from '@/components/AchievementCelebration';
 import { PatternsCard } from '@/components/PatternsCard';
 import { BudgetCard } from '@/components/BudgetCard';
+import { MonthlyDashboardCard } from '@/components/MonthlyDashboardCard';
+import { ImpulsesBreakdownCard } from '@/components/ImpulsesBreakdownCard';
+import { InsightsCard } from '@/components/InsightsCard';
+import { TerminalBackground } from '@/components/TerminalBackground';
+import { TerminalGlow } from '@/components/TerminalGlow';
 import { getLastWeekReview } from '@/utils/weeklyReview';
+import { getCurrentMonthStats } from '@/utils/monthlyStats';
+import { getWorstMoodTrigger } from '@/utils/moodTrigger';
+import { getMostDangerousCategory } from '@/utils/categoryAnalysis';
 import { useBudget } from '@/hooks/useBudget';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
@@ -35,6 +43,27 @@ export default function HomeScreen() {
   
   // Get goal progresses for display
   const goalProgresses = goals.map(goal => getGoalProgress(goal));
+  
+  // Get monthly stats
+  const monthlyStats = React.useMemo(() => getCurrentMonthStats(impulses), [impulses]);
+  
+  // Get monthly goal (first active goal or first goal)
+  const monthlyGoal = React.useMemo(() => {
+    const activeGoals = goals.filter(g => !g.isCompleted);
+    return activeGoals.length > 0 ? activeGoals[0] : (goals.length > 0 ? goals[0] : undefined);
+  }, [goals]);
+  
+  // Get most dangerous category
+  const dangerousCategory = React.useMemo(() => 
+    getMostDangerousCategory(categoryStats), 
+    [categoryStats]
+  );
+  
+  // Get worst mood trigger
+  const worstMoodTrigger = React.useMemo(() => 
+    getWorstMoodTrigger(impulses), 
+    [impulses]
+  );
   
   // Get recent achievements for display
   const recentAchievements = achievementProgress
@@ -66,20 +95,42 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, dynamicStyles.container]} edges={['top']}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <TerminalBackground>
+      <SafeAreaView style={[styles.container, dynamicStyles.container]} edges={['top']}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, dynamicStyles.title]}>ImpulseVault</Text>
           <Text style={[styles.subtitle, dynamicStyles.subtitle]}>Lock your impulses. Free your future.</Text>
         </View>
 
-        {/* Stats Card */}
-        <StatsCard stats={stats} />
+        {/* Monthly Savings Card */}
+        <TerminalGlow color="success" intensity="low">
+          <MonthlyDashboardCard 
+            monthlyStats={monthlyStats} 
+            goal={monthlyGoal}
+          />
+        </TerminalGlow>
+
+        {/* Impulses Breakdown */}
+        <TerminalGlow color="primary" intensity="low">
+          <ImpulsesBreakdownCard monthlyStats={monthlyStats} />
+        </TerminalGlow>
+
+        {/* Insights */}
+        <TerminalGlow color="warning" intensity="low">
+          <InsightsCard 
+            dangerousCategory={dangerousCategory}
+            worstMoodTrigger={worstMoodTrigger}
+          />
+        </TerminalGlow>
+
+        {/* Stats Card (keep for backward compatibility, can be hidden if needed) */}
+        {/* <StatsCard stats={stats} /> */}
 
         {/* Achievements Card */}
         {userLevel && (
@@ -219,8 +270,9 @@ export default function HomeScreen() {
           />
         )}
       </SafeAreaView>
-    );
-  }
+    </TerminalBackground>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {

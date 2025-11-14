@@ -97,39 +97,22 @@ This checklist helps you prepare all necessary assets and documentation for subm
 
 ### App Description
 
+**See `PLAY_STORE_LISTING.md` for the complete, ready-to-use listing copy.**
+
+**Quick Reference:**
+
+**App Name:**
+```
+ImpulseVault – Stop Regret Buys
+```
+
 **Short Description (80 characters):**
 ```
-Lock impulses before you buy. Track regrets. Save money. Cool-down app for smart spending.
+Catch your impulses before you buy. Save money, skip regret.
 ```
 
-**Full Description Template:**
-```
-ImpulseVault - Lock Your Impulses, Free Your Future
-
-ImpulseVault is not another expense tracker. It's a pre-spend shield that catches you before you buy and forces a cool-down period.
-
-🎯 How it works:
-1. Log an impulse before you buy (Swiggy, Amazon, trading, etc.)
-2. Lock it for 24 hours
-3. Review when cool-down ends
-4. Track whether you regret purchases later
-
-💰 See real impact:
-- Money saved by avoiding impulses
-- Regret rate (how often you regret purchases)
-- Weak times and categories (late night? food delivery?)
-
-🧠 Built for:
-- Youth burning money on Swiggy/Zomato
-- Traders buying courses/gadgets on impulse
-- Anyone who says "Why did I buy that?!"
-
-This is psychology + behavior, not just budgeting. Turn your impulses into awareness.
-
-Privacy-focused: Your data stays on your device. Optional cloud sync available.
-
-Download now and start saving money by making smarter spending decisions.
-```
+**Full Description:**
+See `PLAY_STORE_LISTING.md` for the complete long description optimized for youth audience and featuring Zomato/Swiggy, Amazon, Flipkart, gaming, etc.
 
 ### Screenshots
 

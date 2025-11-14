@@ -13,7 +13,8 @@ import { typography } from '@/constants/typography';
 import { spacing, borderRadius } from '@/constants/spacing';
 import { CATEGORIES, CATEGORY_LABELS, EMOTION_LABELS, URGENCY_LABELS } from '@/constants/categories';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { COOL_DOWN_PERIODS, COOL_DOWN_LABELS, COOL_DOWN_DESCRIPTIONS, getDefaultCoolDown } from '@/constants/coolDown';
+import { COOL_DOWN_PERIODS, COOL_DOWN_LABELS, COOL_DOWN_DESCRIPTIONS, getDefaultCoolDownSync } from '@/constants/coolDown';
+import { settings } from '@/services/settings';
 import { ImpulseCategory, EmotionTag, UrgencyLevel, CoolDownPeriod } from '@/types/impulse';
 import { safeValidateCreateImpulse, getValidationErrors } from '@/utils/validation';
 import { ImagePickerButton } from '@/components/ImagePickerButton';
@@ -35,8 +36,22 @@ export default function NewImpulseScreen() {
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
   const [urgency, setUrgency] = useState<UrgencyLevel>('IMPULSE');
   const [coolDownPeriod, setCoolDownPeriod] = useState<CoolDownPeriod>(() => 
-    getDefaultCoolDown('IMPULSE')
+    getDefaultCoolDownSync('IMPULSE')
   );
+
+  // Load user's preferred default cooldown on mount
+  React.useEffect(() => {
+    const loadUserDefault = async () => {
+      try {
+        const userDefault = await settings.getDefaultCoolDown();
+        setCoolDownPeriod(userDefault);
+      } catch (error) {
+        // Use sync fallback
+        setCoolDownPeriod(getDefaultCoolDownSync(urgency));
+      }
+    };
+    loadUserDefault();
+  }, []);
   const [loading, setLoading] = useState(false);
   const [selectedPhotoUri, setSelectedPhotoUri] = useState<string | undefined>();
   const [tempPhotoUri, setTempPhotoUri] = useState<string | undefined>();
@@ -45,7 +60,20 @@ export default function NewImpulseScreen() {
 
   // Auto-update cool-down when urgency changes
   useEffect(() => {
-    setCoolDownPeriod(getDefaultCoolDown(urgency));
+    const updateCoolDown = async () => {
+      try {
+        const userDefault = await settings.getDefaultCoolDown();
+        // For essentials, use shorter period if user default is longer
+        if (urgency === 'ESSENTIAL' && ['1H', '6H', '24H', '3D'].includes(userDefault)) {
+          setCoolDownPeriod('30M');
+        } else {
+          setCoolDownPeriod(userDefault);
+        }
+      } catch {
+        setCoolDownPeriod(getDefaultCoolDownSync(urgency));
+      }
+    };
+    updateCoolDown();
   }, [urgency]);
 
   // Check location permissions on mount
@@ -129,7 +157,7 @@ export default function NewImpulseScreen() {
       }
       
       // Create impulse with photo URI and location
-      await createImpulse({
+      const newImpulse = await createImpulse({
         ...validation.data!,
         price: validation.data!.price ?? undefined,
         emotion: validation.data!.emotion ?? undefined,
@@ -137,8 +165,9 @@ export default function NewImpulseScreen() {
         location: currentLocation || undefined,
       });
       
-      showSuccess('Impulse locked! You\'ll be notified when it\'s ready to review.');
-      router.back();
+      showSuccess('Impulse locked! Starting cooldown...');
+      // Navigate to cooldown screen
+      router.push(`/cooldown/${newImpulse.id}`);
     } catch (error) {
       console.error('Error creating impulse:', error);
       showError('Failed to create impulse. Please try again.');

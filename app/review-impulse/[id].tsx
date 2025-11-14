@@ -10,12 +10,15 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { PhotoViewer } from '@/components/PhotoViewer';
+import { SkipCelebration } from '@/components/SkipCelebration';
+import { RegretRatingSelector } from '@/components/RegretRatingSelector';
 import { typography } from '@/constants/typography';
 import { spacing, borderRadius } from '@/constants/spacing';
 import { CATEGORY_LABELS } from '@/constants/categories';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { formatCurrency } from '@/utils/currency';
 import { formatDateTime, isTimePast } from '@/utils/date';
+import { getFunEquivalents, formatFunEquivalent } from '@/utils/funEquivalents';
 import { Impulse, SkippedFeeling, FinalFeeling } from '@/types/impulse';
 
 export default function ReviewImpulseScreen() {
@@ -32,7 +35,10 @@ export default function ReviewImpulseScreen() {
   const [showReason, setShowReason] = useState(false);
   const [skipReason, setSkipReason] = useState('');
   const [selectedFeeling, setSelectedFeeling] = useState<SkippedFeeling | FinalFeeling | null>(null);
+  const [selectedRegretRating, setSelectedRegretRating] = useState<number | undefined>(undefined);
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [savedAmount, setSavedAmount] = useState(0);
 
   // Get past regrets for same category
   const pastRegrets = impulse ? impulses.filter(
@@ -69,15 +75,29 @@ export default function ReviewImpulseScreen() {
 
     setLoading(true);
     try {
+      const amount = impulse.price || 0;
       await cancelImpulse(impulse.id, feeling);
+      
+      // Show celebration if there's a price
+      if (amount > 0) {
+        setSavedAmount(amount);
+        setShowCelebration(true);
+      } else {
       showSuccess('Great decision! You saved money by avoiding this impulse.');
       router.back();
+      }
     } catch (error) {
       console.error('Error cancelling impulse:', error);
       showError('Failed to cancel impulse. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCelebrationClose = () => {
+    setShowCelebration(false);
+    showSuccess('Great decision! You saved money by avoiding this impulse.');
+    router.back();
   };
 
   const handleExecute = async () => {
@@ -152,12 +172,31 @@ export default function ReviewImpulseScreen() {
           )}
 
           <View style={styles.buttons}>
+            <RegretRatingSelector
+              onRatingSelect={setSelectedRegretRating}
+              selectedRating={selectedRegretRating}
+            />
+
             <Button
-              title="😊 Worth it!"
+              title="Save Rating"
               onPress={async () => {
+                if (!selectedRegretRating) {
+                  showError('Please select a regret rating');
+                  return;
+                }
                 setLoading(true);
                 try {
-                  await markRegret(impulse.id, 'WORTH_IT');
+                  // Map rating to feeling for backward compatibility
+                  let feeling: FinalFeeling;
+                  if (selectedRegretRating <= 2) {
+                    feeling = 'WORTH_IT';
+                  } else if (selectedRegretRating >= 4) {
+                    feeling = 'REGRET';
+                  } else {
+                    feeling = 'NEUTRAL';
+                  }
+                  
+                  await markRegret(impulse.id, feeling, selectedRegretRating);
                   showSuccess('Thanks for the feedback!');
                   router.back();
                 } catch (error) {
@@ -172,48 +211,7 @@ export default function ReviewImpulseScreen() {
               fullWidth
               loading={loading}
               style={styles.button}
-            />
-            <Button
-              title="😔 I regret it"
-              onPress={async () => {
-                setLoading(true);
-                try {
-                  await markRegret(impulse.id, 'REGRET');
-                  showSuccess('Thanks for the feedback. This helps you make better decisions next time!');
-                  router.back();
-                } catch (error) {
-                  console.error('Error marking regret:', error);
-                  showError('Failed to save feedback. Please try again.');
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              variant="outline"
-              size="lg"
-              fullWidth
-              loading={loading}
-              style={styles.button}
-            />
-            <Button
-              title="😐 Neutral"
-              onPress={async () => {
-                setLoading(true);
-                try {
-                  await markRegret(impulse.id, 'NEUTRAL');
-                  showSuccess('Thanks for the feedback!');
-                  router.back();
-                } catch (error) {
-                  console.error('Error marking regret:', error);
-                  showError('Failed to save feedback. Please try again.');
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              variant="ghost"
-              size="lg"
-              fullWidth
-              loading={loading}
-              style={styles.button}
+              disabled={!selectedRegretRating}
             />
           </View>
         </ScrollView>
@@ -256,7 +254,30 @@ export default function ReviewImpulseScreen() {
             </TouchableOpacity>
           )}
           {impulse.price && (
+            <>
             <Text style={[styles.impulsePrice, { color: colors.primary[600] }]}>{formatCurrency(impulse.price)}</Text>
+              {/* Show fun equivalents */}
+              {(() => {
+                const equivalents = getFunEquivalents(impulse.price);
+                if (equivalents.length > 0) {
+                  return (
+                    <View style={[styles.equivalentsContainer, { backgroundColor: colors.primary[50] }]}>
+                      <Text style={[styles.equivalentsTitle, { color: colors.primary[700] }]}>
+                        If you skip this, you keep {formatCurrency(impulse.price)}
+                      </Text>
+                      <View style={styles.equivalentsList}>
+                        {equivalents.slice(0, 2).map((eq, idx) => (
+                          <Text key={idx} style={[styles.equivalentItem, { color: colors.primary[700] }]}>
+                            {formatFunEquivalent(eq)}
+                          </Text>
+                        ))}
+                      </View>
+                    </View>
+                  );
+                }
+                return null;
+              })()}
+            </>
           )}
         </Card>
 
@@ -291,7 +312,7 @@ export default function ReviewImpulseScreen() {
         {!showFeeling && !showReason ? (
           <View style={styles.buttons}>
             <Button
-              title="Skip it - I don't need this"
+              title="Skip this purchase"
               onPress={() => {
                 if (isStrictMode) {
                   setShowReason(true);
@@ -306,7 +327,7 @@ export default function ReviewImpulseScreen() {
               disabled={impulse && !isTimePast(impulse.reviewAt)}
             />
             <Button
-              title="Go ahead - I'm buying it"
+              title="Still buying"
               onPress={handleExecute}
               variant="outline"
               size="lg"
@@ -390,6 +411,13 @@ export default function ReviewImpulseScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Skip Celebration Modal */}
+      <SkipCelebration
+        visible={showCelebration}
+        amount={savedAmount}
+        onClose={handleCelebrationClose}
+      />
     </SafeAreaView>
   );
 }
@@ -516,6 +544,25 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
     marginBottom: spacing.base,
+  },
+  equivalentsContainer: {
+    marginTop: spacing.base,
+    padding: spacing.base,
+    borderRadius: borderRadius.md,
+  },
+  equivalentsTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  equivalentsList: {
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  equivalentItem: {
+    fontSize: typography.fontSize.sm,
+    textAlign: 'center',
   },
 });
 

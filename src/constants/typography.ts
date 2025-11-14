@@ -9,6 +9,7 @@ export const typography = {
     regular: 'System',
     medium: 'System',
     bold: 'System',
+    mono: 'Courier', // Monospace for terminal theme
   },
 
   // Font sizes

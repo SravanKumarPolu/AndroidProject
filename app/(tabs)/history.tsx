@@ -1,13 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, ListRenderItem } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, SectionList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useImpulses } from '@/hooks/useImpulses';
-import { ImpulseCard } from '@/components/ImpulseCard';
+import { HistoryItem } from '@/components/HistoryItem';
+import { ImpulseDetailSheet } from '@/components/ImpulseDetailSheet';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterPanel } from '@/components/FilterPanel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { searchImpulses, SearchFilters, getQuickFilters } from '@/utils/search';
+import { groupImpulsesByDate, GroupedImpulse } from '@/utils/dateGrouping';
+import { Impulse } from '@/types/impulse';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
 
@@ -21,6 +24,8 @@ export default function HistoryScreen() {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<SearchFilters>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedImpulse, setSelectedImpulse] = useState<Impulse | null>(null);
+  const [showDetailSheet, setShowDetailSheet] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -35,7 +40,7 @@ export default function HistoryScreen() {
     // Apply basic status filter
     if (filter !== 'ALL') {
       if (filter === 'REGRETTED') {
-        result = result.filter(impulse => impulse.finalFeeling === 'REGRET');
+        result = result.filter(impulse => impulse.finalFeeling === 'REGRET' || (impulse.regretRating && impulse.regretRating >= 4));
       } else {
         result = result.filter(impulse => impulse.status === filter);
       }
@@ -50,6 +55,20 @@ export default function HistoryScreen() {
 
     return searchImpulses(result, searchFilters);
   }, [impulses, filter, searchQuery, advancedFilters]);
+
+  // Group by date
+  const groupedData = React.useMemo(() => {
+    const grouped = groupImpulsesByDate(filteredImpulses);
+    return grouped.map(group => ({
+      title: group.date,
+      data: group.impulses,
+    }));
+  }, [filteredImpulses]);
+
+  const handleItemPress = (impulse: Impulse) => {
+    setSelectedImpulse(impulse);
+    setShowDetailSheet(true);
+  };
 
   const quickFilters = getQuickFilters();
 
@@ -165,16 +184,21 @@ export default function HistoryScreen() {
         ))}
       </ScrollView>
 
-      {/* Impulses List */}
-      <FlatList
-        data={filteredImpulses}
+      {/* Impulses List - Grouped by Date */}
+      <SectionList
+        sections={groupedData}
+        keyExtractor={(item) => item.id}
         renderItem={({ item: impulse }) => (
-          <ImpulseCard
+          <HistoryItem
             impulse={impulse}
-            showCountdown={false}
+            onPress={() => handleItemPress(impulse)}
           />
         )}
-        keyExtractor={(item) => item.id}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+            <Text style={[styles.sectionHeaderText, { color: colors.text }]}>{title}</Text>
+          </View>
+        )}
         contentContainerStyle={
           filteredImpulses.length === 0 ? styles.emptyStateContainer : styles.content
         }
@@ -193,6 +217,7 @@ export default function HistoryScreen() {
             </Text>
           </View>
         }
+        stickySectionHeadersEnabled={false}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={10}
@@ -208,6 +233,16 @@ export default function HistoryScreen() {
         onReset={() => {
           setAdvancedFilters({});
           setSearchQuery('');
+        }}
+      />
+
+      {/* Detail Bottom Sheet */}
+      <ImpulseDetailSheet
+        visible={showDetailSheet}
+        impulse={selectedImpulse}
+        onClose={() => {
+          setShowDetailSheet(false);
+          setSelectedImpulse(null);
         }}
       />
     </SafeAreaView>
@@ -318,6 +353,15 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     textAlign: 'center',
     lineHeight: typography.lineHeight.relaxed * typography.fontSize.base,
+  },
+  sectionHeader: {
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    paddingTop: spacing.base,
+  },
+  sectionHeaderText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
   },
 });
 

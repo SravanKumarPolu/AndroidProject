@@ -113,7 +113,7 @@ function RootLayoutContent() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+          <StatusBar style={theme === 'dark' || theme === 'terminal' ? 'light' : 'dark'} />
           <Stack
             screenOptions={{
               headerShown: false,

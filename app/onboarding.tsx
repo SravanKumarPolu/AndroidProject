@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,9 @@ import { spacing } from '@/constants/spacing';
 import { requestPermissions } from '@/services/notifications';
 import { useToast } from '@/contexts/ToastContext';
 import { onboarding } from '@/utils/onboarding';
+import { useGoals } from '@/hooks/useGoals';
+import { formatCurrency } from '@/utils/currency';
+import { Input } from '@/components/ui/Input';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -31,86 +34,34 @@ interface OnboardingSlide {
   illustration?: string;
 }
 
-const slides: OnboardingSlide[] = [
-  {
-    icon: 'lock-closed',
-    title: 'Lock Your Impulses',
-    description: 'Before you buy, log it. We\'ll help you think twice with a cool-down period that gives you time to reflect.',
-    color: '#6366F1',
-    illustration: '🔒',
-  },
-  {
-    icon: 'time',
-    title: 'Cool-Down Period',
-    description: 'Wait 24 hours before buying. Time to reflect and make better decisions. Most regrets happen in the heat of the moment.',
-    color: '#F59E0B',
-    illustration: '⏰',
-  },
-  {
-    icon: 'trending-down',
-    title: 'Track Your Regrets',
-    description: 'See which purchases you regretted and how much money you\'ve saved. Learn from your patterns and make smarter choices.',
-    color: '#10B981',
-    illustration: '📊',
-  },
-  {
-    icon: 'notifications',
-    title: 'Smart Reminders',
-    description: 'Get notified when your cool-down ends and when to check in on purchases. Never miss an opportunity to save.',
-    color: '#EF4444',
-    illustration: '🔔',
-  },
-];
+// Simplified 2-screen onboarding
+const ONBOARDING_SCREENS = {
+  WELCOME: 0,
+  GOAL: 1,
+} as const;
+
+type OnboardingScreenType = typeof ONBOARDING_SCREENS[keyof typeof ONBOARDING_SCREENS];
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  // Format currency for display (using INR as default for onboarding)
-  const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
   const { showError, showInfo } = useToast();
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const { createGoal } = useGoals();
+  const [currentScreen, setCurrentScreen] = useState<OnboardingScreenType>(ONBOARDING_SCREENS.WELCOME);
   const [requestingPermissions, setRequestingPermissions] = useState(false);
-
-  const scrollX = useSharedValue(0);
-  const iconScale = useSharedValue(1);
-  const iconRotation = useSharedValue(0);
-
-  const scrollViewRef = useRef<ScrollView>(null);
+  const [monthlyGoal, setMonthlyGoal] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const handleNext = () => {
-    if (currentSlide < slides.length - 1) {
-      const nextSlide = currentSlide + 1;
-      scrollViewRef.current?.scrollTo({
-        x: nextSlide * SCREEN_WIDTH,
-        animated: true,
-      });
-      setCurrentSlide(nextSlide);
-      
-      // Animate icon
-      iconScale.value = withSequence(
-        withSpring(1.2),
-        withSpring(1)
-      );
-      iconRotation.value = withSpring(iconRotation.value + 360);
-    } else {
-      handleComplete();
+    if (currentScreen === ONBOARDING_SCREENS.WELCOME) {
+      setCurrentScreen(ONBOARDING_SCREENS.GOAL);
     }
   };
 
   const handleBack = () => {
-    if (currentSlide > 0) {
-      const prevSlide = currentSlide - 1;
-      scrollViewRef.current?.scrollTo({
-        x: prevSlide * SCREEN_WIDTH,
-        animated: true,
-      });
-      setCurrentSlide(prevSlide);
-      
-      // Animate icon
-      iconScale.value = withSequence(
-        withSpring(1.2),
-        withSpring(1)
-      );
+    if (currentScreen === ONBOARDING_SCREENS.GOAL) {
+      setCurrentScreen(ONBOARDING_SCREENS.WELCOME);
     }
   };
 
@@ -120,6 +71,20 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     try {
+      // Create monthly goal if selected
+      if (monthlyGoal && monthlyGoal > 0) {
+        try {
+          await createGoal({
+            title: 'Monthly Savings Goal',
+            targetAmount: monthlyGoal,
+            description: 'Track your monthly savings from skipped impulses',
+          });
+        } catch (goalError) {
+          console.error('Error creating monthly goal:', goalError);
+          // Continue even if goal creation fails
+        }
+      }
+
       await onboarding.markComplete();
       
       setRequestingPermissions(true);
@@ -149,59 +114,6 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleScroll = (event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    scrollX.value = offsetX;
-    const newSlide = Math.round(offsetX / SCREEN_WIDTH);
-    if (newSlide !== currentSlide) {
-      setCurrentSlide(newSlide);
-      iconScale.value = withSequence(
-        withSpring(1.2),
-        withSpring(1)
-      );
-    }
-  };
-
-  const current = slides[currentSlide];
-
-  // Animated styles
-  const iconAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { scale: iconScale.value },
-        { rotate: `${iconRotation.value}deg` },
-      ],
-    };
-  });
-
-  const indicatorAnimatedStyle = (index: number) => {
-    return useAnimatedStyle(() => {
-      const inputRange = [
-        (index - 1) * SCREEN_WIDTH,
-        index * SCREEN_WIDTH,
-        (index + 1) * SCREEN_WIDTH,
-      ];
-      
-      const width = interpolate(
-        scrollX.value,
-        inputRange,
-        [8, 24, 8],
-        Extrapolate.CLAMP
-      );
-      
-      const opacity = interpolate(
-        scrollX.value,
-        inputRange,
-        [0.3, 1, 0.3],
-        Extrapolate.CLAMP
-      );
-
-      return {
-        width,
-        opacity,
-      };
-    });
-  };
 
   const dynamicStyles = {
     container: { backgroundColor: colors.background },
@@ -210,132 +122,253 @@ export default function OnboardingScreen() {
     skipText: { color: colors.textLight },
   };
 
-  return (
-    <SafeAreaView style={[styles.container, dynamicStyles.container]} edges={['top', 'bottom']}>
-      {/* Skip Button */}
-      {currentSlide < slides.length - 1 && (
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Scrollable Slides */}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={styles.scrollView}
-      >
-        {slides.map((slide, index) => {
-          const slideAnimatedStyle = useAnimatedStyle(() => {
-            const inputRange = [
-              (index - 1) * SCREEN_WIDTH,
-              index * SCREEN_WIDTH,
-              (index + 1) * SCREEN_WIDTH,
-            ];
-            
-            const opacity = interpolate(
-              scrollX.value,
-              inputRange,
-              [0, 1, 0],
-              Extrapolate.CLAMP
-            );
-            
-            const translateY = interpolate(
-              scrollX.value,
-              inputRange,
-              [50, 0, 50],
-              Extrapolate.CLAMP
-            );
-
-            return {
-              opacity,
-              transform: [{ translateY }],
-            };
-          });
-
-          return (
-            <View key={index} style={[styles.slide, { width: SCREEN_WIDTH }]}>
-              <Animated.View style={[styles.slideContent, slideAnimatedStyle]}>
-                {/* Icon Container */}
-                <View style={[styles.iconContainer, { backgroundColor: `${slide.color}15` }]}>
-                  {index === currentSlide && (
-                    <Animated.View style={iconAnimatedStyle}>
-                      <Ionicons name={slide.icon} size={80} color={slide.color} />
-                    </Animated.View>
-                  )}
-                  {index !== currentSlide && (
-                    <Ionicons name={slide.icon} size={80} color={slide.color} />
-                  )}
-                </View>
-
-                {/* Title */}
-                <Text style={[styles.title, dynamicStyles.title]}>{slide.title}</Text>
-
-                {/* Description */}
-                <Text style={[styles.description, dynamicStyles.description]}>
-                  {slide.description}
-                </Text>
-
-                {/* Example Stats (for engagement) */}
-                {index === 2 && (
-                  <View style={[styles.statsPreview, { backgroundColor: colors.surface }]}>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statValue, { color: colors.success[600] }]}>
-                        {formatCurrency(12500)}
-                      </Text>
-                      <Text style={[styles.statLabel, { color: colors.textLight }]}>Saved</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statValue, { color: colors.primary[600] }]}>23</Text>
-                      <Text style={[styles.statLabel, { color: colors.textLight }]}>Avoided</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statValue, { color: colors.accent[600] }]}>7 days</Text>
-                      <Text style={[styles.statLabel, { color: colors.textLight }]}>Streak</Text>
-                    </View>
-                  </View>
-                )}
-              </Animated.View>
-            </View>
-          );
-        })}
-      </ScrollView>
-
-      {/* Indicators */}
-      <View style={styles.indicators}>
-        {slides.map((slide, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.indicator,
-              { backgroundColor: slide.color },
-              indicatorAnimatedStyle(index),
-            ]}
-          />
-        ))}
+  // Render Welcome Screen
+  const renderWelcomeScreen = () => (
+    <View style={styles.screen}>
+      <View style={styles.welcomeContent}>
+        <Text style={[styles.welcomeTitle, dynamicStyles.title]}>
+          Stop regret buys. Start saving.
+        </Text>
+        
+        <View style={styles.bullets}>
+          <View style={styles.bulletItem}>
+            <Text style={styles.bulletIcon}>✓</Text>
+            <Text style={[styles.bulletText, dynamicStyles.description]}>
+              Catch yourself before paying.
+            </Text>
+          </View>
+          <View style={styles.bulletItem}>
+            <Text style={styles.bulletIcon}>✓</Text>
+            <Text style={[styles.bulletText, dynamicStyles.description]}>
+              Wait a bit, then decide smart.
+            </Text>
+          </View>
+          <View style={styles.bulletItem}>
+            <Text style={styles.bulletIcon}>✓</Text>
+            <Text style={[styles.bulletText, dynamicStyles.description]}>
+              Watch your saved money grow.
+            </Text>
+          </View>
+        </View>
       </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actions}>
-        {currentSlide > 0 && (
-          <Button
-            variant="outline"
-            title="Back"
-            onPress={handleBack}
-            style={styles.backButton}
-          />
-        )}
+      
+      <View style={styles.welcomeActions}>
         <Button
-          title={currentSlide === slides.length - 1 ? 'Get Started' : 'Next'}
+          title="Set My Goal"
           onPress={handleNext}
-          loading={requestingPermissions}
-          style={styles.nextButton}
+          style={styles.welcomeButton}
+          fullWidth
         />
       </View>
+    </View>
+  );
+
+  // Render Goal Screen
+  const renderGoalScreen = () => (
+    <View style={styles.screen}>
+      <View style={styles.goalContent}>
+        <Text style={[styles.goalTitle, dynamicStyles.title]}>Set Your Monthly Savings Goal</Text>
+        <Text style={[styles.goalDescription, dynamicStyles.description]}>
+          Pick a monthly savings goal to track your progress. You can change this later.
+        </Text>
+        
+        <View style={styles.goalOptions}>
+          {[2000, 5000, 10000].map((amount) => (
+            <TouchableOpacity
+              key={amount}
+              style={[
+                styles.goalOption,
+                monthlyGoal === amount && { backgroundColor: colors.primary[500], borderColor: colors.primary[500] },
+                { borderColor: colors.border },
+              ]}
+              onPress={() => {
+                setMonthlyGoal(amount);
+                setShowCustomInput(false);
+                setCustomAmount('');
+              }}
+            >
+              <Text
+                style={[
+                  styles.goalOptionText,
+                  { color: monthlyGoal === amount ? colors.textDark : colors.text },
+                ]}
+              >
+                {formatCurrency(amount)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            style={[
+              styles.goalOption,
+              showCustomInput && { backgroundColor: colors.primary[500], borderColor: colors.primary[500] },
+              { borderColor: colors.border },
+            ]}
+            onPress={() => {
+              setShowCustomInput(true);
+              setMonthlyGoal(null);
+            }}
+          >
+            <Text
+              style={[
+                styles.goalOptionText,
+                { color: showCustomInput ? colors.textDark : colors.text },
+              ]}
+            >
+              Custom
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {showCustomInput && (
+          <View style={styles.customInputContainer}>
+            <Input
+              label="Enter custom amount"
+              placeholder="₹0"
+              value={customAmount}
+              onChangeText={(text) => {
+                setCustomAmount(text);
+                const numValue = parseFloat(text.replace(/[₹,\s]/g, ''));
+                if (!isNaN(numValue) && numValue > 0) {
+                  setMonthlyGoal(numValue);
+                } else {
+                  setMonthlyGoal(null);
+                }
+              }}
+              keyboardType="numeric"
+              style={styles.customInput}
+            />
+          </View>
+        )}
+      </View>
+      
+      <View style={styles.goalActions}>
+        <Button
+          title="Back"
+          variant="outline"
+          onPress={handleBack}
+          style={styles.goalBackButton}
+        />
+        <Button
+          title="Continue"
+          onPress={handleComplete}
+          loading={requestingPermissions}
+          style={styles.goalContinueButton}
+          disabled={!monthlyGoal}
+        />
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, dynamicStyles.container]} edges={['top', 'bottom']}>
+      {currentScreen === ONBOARDING_SCREENS.WELCOME && renderWelcomeScreen()}
+      {currentScreen === ONBOARDING_SCREENS.GOAL && renderGoalScreen()}
+      
+      {/* Monthly Goal Picker Modal (kept for backward compatibility, but not used in new flow) */}
+      <Modal
+        visible={false}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          handleComplete();
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Set Your Monthly Savings Goal</Text>
+            <Text style={[styles.modalDescription, { color: colors.textLight }]}>
+              Pick a monthly savings goal to track your progress. You can change this later.
+            </Text>
+            
+            <View style={styles.goalOptions}>
+              {[2000, 5000, 10000].map((amount) => (
+                <TouchableOpacity
+                  key={amount}
+                  style={[
+                    styles.goalOption,
+                    monthlyGoal === amount && { backgroundColor: colors.primary[500], borderColor: colors.primary[500] },
+                    { borderColor: colors.border },
+                  ]}
+                  onPress={() => {
+                    setMonthlyGoal(amount);
+                    setShowCustomInput(false);
+                    setCustomAmount('');
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.goalOptionText,
+                      { color: monthlyGoal === amount ? colors.textDark : colors.text },
+                    ]}
+                  >
+                    {formatCurrency(amount)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[
+                  styles.goalOption,
+                  showCustomInput && { backgroundColor: colors.primary[500], borderColor: colors.primary[500] },
+                  { borderColor: colors.border },
+                ]}
+                onPress={() => {
+                  setShowCustomInput(true);
+                  setMonthlyGoal(null);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.goalOptionText,
+                    { color: showCustomInput ? colors.textDark : colors.text },
+                  ]}
+                >
+                  Custom
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {showCustomInput && (
+              <View style={styles.customInputContainer}>
+                <Input
+                  label="Enter custom amount"
+                  placeholder="₹0"
+                  value={customAmount}
+                  onChangeText={(text) => {
+                    setCustomAmount(text);
+                    const numValue = parseFloat(text.replace(/[₹,\s]/g, ''));
+                    if (!isNaN(numValue) && numValue > 0) {
+                      setMonthlyGoal(numValue);
+                    } else {
+                      setMonthlyGoal(null);
+                    }
+                  }}
+                  keyboardType="numeric"
+                  style={styles.customInput}
+                />
+              </View>
+            )}
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Skip"
+                variant="ghost"
+                onPress={() => {
+                  handleComplete();
+                }}
+                style={styles.modalButton}
+              />
+              <Button
+                title="Continue"
+                onPress={() => {
+                  handleComplete();
+                }}
+                style={styles.modalButton}
+                disabled={!monthlyGoal}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -426,6 +459,130 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nextButton: {
+    flex: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.base,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: spacing.xl,
+    padding: spacing.xl,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  modalTitle: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  modalDescription: {
+    fontSize: typography.fontSize.base,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    lineHeight: typography.lineHeight.relaxed * typography.fontSize.base,
+  },
+  goalOptions: {
+    gap: spacing.base,
+    marginBottom: spacing.xl,
+  },
+  goalOption: {
+    padding: spacing.lg,
+    borderRadius: spacing.md,
+    borderWidth: 2,
+    alignItems: 'center',
+  },
+  goalOptionText: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.base,
+  },
+  modalButton: {
+    flex: 1,
+  },
+  customInputContainer: {
+    marginTop: spacing.base,
+  },
+  customInput: {
+    marginBottom: 0,
+  },
+  screen: {
+    flex: 1,
+    padding: spacing.xl,
+    justifyContent: 'space-between',
+  },
+  welcomeContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  welcomeTitle: {
+    fontSize: typography.fontSize['4xl'],
+    fontWeight: typography.fontWeight.bold,
+    textAlign: 'center',
+    marginBottom: spacing['2xl'],
+  },
+  bullets: {
+    gap: spacing.lg,
+    width: '100%',
+  },
+  bulletItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
+  },
+  bulletIcon: {
+    fontSize: typography.fontSize.xl,
+    color: '#10B981',
+    fontWeight: typography.fontWeight.bold,
+  },
+  bulletText: {
+    fontSize: typography.fontSize.lg,
+    flex: 1,
+  },
+  welcomeActions: {
+    paddingBottom: spacing.xl,
+  },
+  welcomeButton: {
+    marginTop: spacing.base,
+  },
+  goalContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  goalTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    textAlign: 'center',
+    marginBottom: spacing.base,
+  },
+  goalDescription: {
+    fontSize: typography.fontSize.base,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    lineHeight: typography.lineHeight.relaxed * typography.fontSize.base,
+  },
+  goalActions: {
+    flexDirection: 'row',
+    gap: spacing.base,
+    paddingBottom: spacing.xl,
+  },
+  goalBackButton: {
+    flex: 1,
+  },
+  goalContinueButton: {
     flex: 2,
   },
 });

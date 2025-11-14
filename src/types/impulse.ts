@@ -17,7 +17,7 @@ export type EmotionTag = 'BORED' | 'STRESSED' | 'FOMO' | 'HAPPY' | 'LONELY' | 'N
 
 export type UrgencyLevel = 'ESSENTIAL' | 'NICE_TO_HAVE' | 'IMPULSE';
 
-export type CoolDownPeriod = '1H' | '6H' | '24H' | '3D';
+export type CoolDownPeriod = '5M' | '15M' | '30M' | '1H' | '6H' | '24H' | '3D';
 
 export type ImpulseStatus = 'LOCKED' | 'CANCELLED' | 'EXECUTED';
 
@@ -41,6 +41,7 @@ export interface Impulse {
   status: ImpulseStatus;
   executedAt?: number;
   finalFeeling?: FinalFeeling;
+  regretRating?: number; // 1-5 scale (1 = no regret, 5 = high regret)
   skippedFeeling?: SkippedFeeling;
   notes?: string;
   sourceApp?: string; // e.g., "Swiggy", "Amazon" (optional)

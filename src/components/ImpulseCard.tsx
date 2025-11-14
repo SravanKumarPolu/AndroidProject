@@ -110,6 +110,11 @@ export function ImpulseCard({ impulse, onPress, showCountdown = true }: ImpulseC
 
         {showCountdown && impulse.status === 'LOCKED' && (
           <View style={styles.countdownContainer}>
+            {impulse.price && isReady && (
+              <Text style={[styles.keepAmount, { color: colors.success[700] }]}>
+                If you skip, you keep {formatCurrency(impulse.price)}
+              </Text>
+            )}
             <Text style={[
               styles.countdown,
               isReady && styles.countdownReady,
@@ -242,6 +247,12 @@ const styles = StyleSheet.create({
   },
   feelingLabel: {
     fontSize: typography.fontSize.sm,
+  },
+  keepAmount: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
   },
 });
 

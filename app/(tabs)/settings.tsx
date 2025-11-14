@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Li
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettings } from '@/hooks/useSettings';
+import { settings as settingsService } from '@/services/settings';
+import { CoolDownPeriod } from '@/types/impulse';
+import { COOL_DOWN_PERIODS, COOL_DOWN_LABELS } from '@/constants/coolDown';
 import { useImpulses } from '@/hooks/useImpulses';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -34,10 +37,17 @@ export default function SettingsScreen() {
   const [cloudSyncEnabled, setCloudSyncEnabledState] = useState(false);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [defaultCoolDown, setDefaultCoolDown] = useState<CoolDownPeriod>('30M');
 
   useEffect(() => {
     loadCloudSyncStatus();
+    loadDefaultCoolDown();
   }, []);
+
+  const loadDefaultCoolDown = async () => {
+    const period = await settingsService.getDefaultCoolDown();
+    setDefaultCoolDown(period);
+  };
 
   const loadCloudSyncStatus = async () => {
     const enabled = await isCloudSyncEnabled();
@@ -243,20 +253,26 @@ export default function SettingsScreen() {
             </View>
           </View>
           <View style={styles.themeOptions}>
-            {(['light', 'dark', 'system'] as const).map((mode) => (
+            {(['light', 'dark', 'system', 'terminal'] as const).map((mode) => (
               <TouchableOpacity
                 key={mode}
                 style={[
                   styles.themeOption,
                   themeMode === mode && styles.themeOptionActive,
                   { borderColor: colors.border },
-                  themeMode === mode && { borderColor: colors.primary[500], backgroundColor: colors.primary[50] },
+                  themeMode === mode && { 
+                    borderColor: colors.primary[500], 
+                    backgroundColor: mode === 'terminal' ? 'rgba(0, 255, 65, 0.1)' : colors.primary[50] 
+                  },
                 ]}
                 onPress={() => setThemeMode(mode)}
               >
                 <Ionicons
                   name={
-                    mode === 'light' ? 'sunny' : mode === 'dark' ? 'moon' : 'phone-portrait'
+                    mode === 'light' ? 'sunny' : 
+                    mode === 'dark' ? 'moon' : 
+                    mode === 'terminal' ? 'terminal' : 
+                    'phone-portrait'
                   }
                   size={20}
                   color={themeMode === mode ? colors.primary[600] : colors.textLight}
@@ -268,7 +284,7 @@ export default function SettingsScreen() {
                     themeMode === mode && { color: colors.primary[700], fontWeight: typography.fontWeight.semibold },
                   ]}
                 >
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  {mode === 'terminal' ? 'Terminal' : mode.charAt(0).toUpperCase() + mode.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -328,6 +344,57 @@ export default function SettingsScreen() {
                   ]}
                 >
                   {curr.code}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+
+        {/* Default Cooldown Period */}
+        <Card variant="elevated" style={styles.card}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="time-outline" size={24} color={colors.primary[600]} />
+              </View>
+              <View style={styles.settingText}>
+                <Text style={[styles.settingTitle, { color: colors.text }]}>Default Cooldown Period</Text>
+                <Text style={[styles.settingDescription, { color: colors.textLight }]}>
+                  Current: {COOL_DOWN_LABELS[defaultCoolDown]}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.cooldownGrid}>
+            {COOL_DOWN_PERIODS.map((period) => (
+              <TouchableOpacity
+                key={period}
+                style={[
+                  styles.cooldownOption,
+                  defaultCoolDown === period && styles.cooldownOptionActive,
+                  { borderColor: colors.border },
+                  defaultCoolDown === period && { 
+                    borderColor: colors.primary[500], 
+                    backgroundColor: colors.primary[50] 
+                  },
+                ]}
+                onPress={async () => {
+                  await settingsService.updateDefaultCoolDown(period);
+                  setDefaultCoolDown(period);
+                  showSuccess('Default cooldown updated');
+                }}
+              >
+                <Text
+                  style={[
+                    styles.cooldownOptionText,
+                    { color: colors.textLight },
+                    defaultCoolDown === period && { 
+                      color: colors.primary[700], 
+                      fontWeight: typography.fontWeight.semibold 
+                    },
+                  ]}
+                >
+                  {COOL_DOWN_LABELS[period]}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -775,6 +842,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.sm,
     fontStyle: 'italic',
+  },
+  cooldownGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.base,
+  },
+  cooldownOption: {
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: spacing.md,
+    borderWidth: 1,
+    minWidth: '30%',
+  },
+  cooldownOptionActive: {
+    // Handled dynamically
+  },
+  cooldownOptionText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    textAlign: 'center',
   },
 });
 

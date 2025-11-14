@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Impulse } from '@/types/impulse';
+import { Impulse, CoolDownPeriod } from '@/types/impulse';
 import { storage } from '@/services/storage';
 import { scheduleCoolDownNotification, scheduleRegretCheckNotification } from '@/services/notifications';
 import { addHours } from '@/utils/date';
-import { coolDownPeriodToHours, getDefaultCoolDown } from '@/constants/coolDown';
+import { coolDownPeriodToMs, getDefaultCoolDownSync } from '@/constants/coolDown';
+import { settings } from '@/services/settings';
 import { autoSync, syncFromCloud } from '@/services/cloudSync';
 import { trackPositiveAction } from '@/services/rating';
 
@@ -83,9 +84,20 @@ export function useImpulses() {
   }) => {
     try {
       const now = Date.now();
-      const coolDownPeriod = formData.coolDownPeriod || getDefaultCoolDown(formData.urgency);
-      const hours = coolDownPeriodToHours(coolDownPeriod);
-      const reviewAt = addHours(now, hours);
+      // Get user's preferred default or use urgency-based default
+      let defaultPeriod: CoolDownPeriod;
+      try {
+        defaultPeriod = await settings.getDefaultCoolDown();
+        // For essentials, use shorter period if user default is longer
+        if (formData.urgency === 'ESSENTIAL' && ['1H', '6H', '24H', '3D'].includes(defaultPeriod)) {
+          defaultPeriod = '30M';
+        }
+      } catch {
+        defaultPeriod = getDefaultCoolDownSync(formData.urgency);
+      }
+      const coolDownPeriod = formData.coolDownPeriod || defaultPeriod;
+      // Use milliseconds for precision with shorter cooldown periods
+      const reviewAt = now + coolDownPeriodToMs(coolDownPeriod);
 
       const newImpulse: Impulse = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -158,10 +170,11 @@ export function useImpulses() {
     }
   }, [impulses]);
 
-  const cancelImpulse = useCallback(async (id: string, feeling: Impulse['skippedFeeling']) => {
+  const cancelImpulse = useCallback(async (id: string, feeling: Impulse['skippedFeeling'], note?: string) => {
     await updateImpulse(id, {
       status: 'CANCELLED',
       skippedFeeling: feeling,
+      notes: note,
     });
     // Track positive action for rating prompts
     await trackPositiveAction();
@@ -174,9 +187,10 @@ export function useImpulses() {
     });
   }, [updateImpulse]);
 
-  const markRegret = useCallback(async (id: string, feeling: Impulse['finalFeeling']) => {
+  const markRegret = useCallback(async (id: string, feeling: Impulse['finalFeeling'], rating?: number) => {
     await updateImpulse(id, {
       finalFeeling: feeling,
+      regretRating: rating,
     });
   }, [updateImpulse]);
 

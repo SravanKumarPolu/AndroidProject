@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CoolDownPeriod } from '@/types/impulse';
 
 const SETTINGS_KEY = '@impulsevault:settings';
 const FIRST_USE_KEY = '@impulsevault:firstUse';
@@ -6,12 +7,14 @@ const FIRST_USE_KEY = '@impulsevault:firstUse';
 export interface AppSettings {
   strictMode: boolean;
   strictModeDays: number; // Days since first use to enforce strict mode
+  defaultCoolDownPeriod?: CoolDownPeriod; // User's preferred default cooldown
   firstUseDate?: number;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   strictMode: true, // Default to strict mode for first 7 days
   strictModeDays: 7,
+  defaultCoolDownPeriod: '30M', // Default to 30 minutes (matches new concept)
 };
 
 /**
@@ -78,6 +81,19 @@ export const settings = {
   async isStrictModeActive(): Promise<boolean> {
     const settings = await this.getSettings();
     return settings.strictMode;
+  },
+
+  async updateDefaultCoolDown(period: CoolDownPeriod): Promise<void> {
+    const current = await this.getSettings();
+    await this.saveSettings({
+      ...current,
+      defaultCoolDownPeriod: period,
+    });
+  },
+
+  async getDefaultCoolDown(): Promise<CoolDownPeriod> {
+    const settings = await this.getSettings();
+    return settings.defaultCoolDownPeriod || '30M';
   },
 };
 

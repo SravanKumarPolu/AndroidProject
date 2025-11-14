@@ -1,219 +1,120 @@
-# Implementation Status ✅
+# Screen-by-Screen Flow Implementation Status
 
-## All Features Implemented
+## ✅ Completed
 
-### ✅ 1. Error Handling UI
-**Status:** ✅ **COMPLETE**
+### 1. **Dedicated Cooldown Screen** ✅
+- **File:** `app/cooldown/[id].tsx`
+- **Features:**
+  - Big headline with wait time
+  - Price card showing "Skipping saves: ₹X"
+  - Fun equivalents display
+  - Timer countdown (CountdownTimer component)
+  - Action buttons: "Skip this buy", "Still buying", "I'll decide later"
+  - Note modal after skip
+  - Celebration modal on skip
+  - Strict mode handling
 
-**Files:**
-- `src/components/ui/Toast.tsx` - Toast notification component
-- `src/hooks/useToast.ts` - Toast hook with helper methods
-- `app/_layout.tsx` - Toast integrated in root layout
+### 2. **New Impulse Navigation** ✅
+- **File:** `app/new-impulse.tsx`
+- **Change:** After creating impulse, navigates to cooldown screen instead of going back
 
-**Features:**
-- ✅ Success, error, warning, info toast types
-- ✅ Animated appearance/disappearance
-- ✅ Auto-dismiss after 3 seconds
-- ✅ Helper methods: `showError()`, `showSuccess()`, `showWarning()`, `showInfo()`
+### 3. **Note After Skip** ✅
+- **File:** `src/hooks/useImpulses.ts`
+- **Change:** `cancelImpulse` now accepts optional note parameter
+- **File:** `app/cooldown/[id].tsx`
+- **Feature:** Modal to add note after skipping
 
-**Usage:**
-```typescript
-const { showError, showSuccess } = useToast();
-showError('Something went wrong');
-showSuccess('Operation completed!');
-```
+### 4. **Enhanced CountdownTimer** ✅
+- **File:** `src/components/CountdownTimer.tsx`
+- **Changes:**
+  - Supports 'lg' size for cooldown screen
+  - Better time formatting (HH:MM:SS or MM:SS)
+  - Theme-aware colors
 
----
+### 5. **Monthly Stats Utility** ✅
+- **File:** `src/utils/monthlyStats.ts`
+- **Features:**
+  - `getCurrentMonthStats()` - Calculate monthly statistics
+  - Returns: totalSaved, totalLogged, totalCancelled, totalExecuted, totalRegretted, regretRate
 
-### ✅ 2. Basic Tests
-**Status:** ✅ **COMPLETE**
-
-**Files:**
-- `jest.config.js` - Jest configuration
-- `src/utils/__tests__/date.test.ts` - Date utility tests
-- `src/utils/__tests__/currency.test.ts` - Currency utility tests
-- `package.json` - Test scripts added
-
-**Features:**
-- ✅ Jest + jest-expo setup
-- ✅ Tests for date utilities (addHours, isTimePast, getTimeRemaining, formatDateTime)
-- ✅ Tests for currency utilities (formatCurrency)
-- ✅ Test scripts: `npm test`, `npm run test:watch`, `npm run test:coverage`
-
-**Run Tests:**
-```bash
-npm test
-npm run test:watch
-npm run test:coverage
-```
+### 6. **Mood Trigger Analysis** ✅
+- **File:** `src/utils/moodTrigger.ts`
+- **Features:**
+  - `getWorstMoodTrigger()` - Find worst emotion + time of day combination
+  - `formatMoodTrigger()` - Format for display
 
 ---
 
-### ✅ 3. Onboarding Screen
-**Status:** ✅ **COMPLETE**
+## ⚠️ Partially Complete / Needs Restructure
 
-**Files:**
-- `app/onboarding.tsx` - Onboarding screen with 4 slides
-- `app/index.tsx` - Checks onboarding status and redirects
+### 1. **Onboarding Flow** ⚠️
+**Required:**
+- Screen 1: Welcome with 3 bullets + "Set My Goal" button
+- Screen 2: Goal picker (₹2K/₹5K/₹10K/custom) → Go to Dashboard
 
-**Features:**
-- ✅ 4-slide onboarding flow:
-  1. Lock Your Impulses
-  2. Cool-Down Period
-  3. Track Your Regrets
-  4. Smart Reminders
-- ✅ Skip button
-- ✅ Back/Next navigation
-- ✅ Notification permission request
-- ✅ AsyncStorage persistence
-- ✅ Smooth transitions
+**Current:**
+- 4 slides with different content
+- Goal picker modal at end (exists but different flow)
 
-**Flow:**
-- First launch → Onboarding
-- After completion → Home screen
-- Onboarding marked as complete in AsyncStorage
+**Action Needed:** Restructure to 2-screen flow
 
 ---
 
-### ✅ 4. Weekly Review Integration
-**Status:** ✅ **COMPLETE** (Already implemented)
+### 2. **Dashboard Layout** ⚠️
+**Required:**
+- Top card: "Saved this month: ₹4,250" + "Goal: ₹5,000" + Progress bar
+- Middle: "Impulses this month: 12" + "Skipped: 7 | Bought: 5 | Regrets: 3"
+- Bottom: "Most dangerous category: Food" + "Worst mood trigger: Bored (Late night)"
+- FAB: + New Impulse
 
-**Files:**
-- `src/components/WeeklyReviewCard.tsx` - Weekly review component
-- `app/(tabs)/index.tsx` - Integrated on home screen
+**Current:**
+- Stats card with total saved (not monthly)
+- Various cards (achievements, patterns, goals, etc.)
+- FAB exists
 
-**Features:**
-- ✅ Displays on home screen when impulses exist
-- ✅ Shows money saved, impulses avoided, streak
-- ✅ Shows regret rate if applicable
-- ✅ Celebration message when money saved
-
----
-
-### ✅ 5. Export Feature
-**Status:** ✅ **COMPLETE** (Already implemented)
-
-**Files:**
-- `src/utils/export.ts` - Export utilities
-- `app/(tabs)/settings.tsx` - Export UI in settings
-
-**Features:**
-- ✅ CSV export
-- ✅ JSON export
-- ✅ File sharing via expo-sharing
-- ✅ Loading states
-- ✅ Error handling
+**Action Needed:** Restructure dashboard to match exact layout
 
 ---
 
-### ✅ 6. Settings Screen
-**Status:** ✅ **COMPLETE** (Already implemented)
+### 3. **History Grouping** ⚠️
+**Required:**
+- List grouped by date
+- Format: [Skipped] "Zomato late-night burger – ₹350 – Saved"
+- Format: [Regret 😭] "Gaming skins – ₹499 – Regret 4/5"
+- Format: [No Regret 😌] "Standing desk – ₹8000 – Regret 1/5"
+- Click item → Detail bottom sheet
 
-**Files:**
-- `app/(tabs)/settings.tsx` - Complete settings screen
+**Current:**
+- Flat list with filters
+- No date grouping
+- No regret rating (1-5 scale)
+- No bottom sheet detail view
 
-**Features:**
-- ✅ Strict mode toggle
-- ✅ Export data (CSV/JSON)
-- ✅ Cloud sync toggle
-- ✅ App info
-- ✅ Clear data (placeholder)
-
----
-
-### ✅ 7. Animations & Polish
-**Status:** ✅ **COMPLETE**
-
-**Files:**
-- `src/components/ui/AnimatedCard.tsx` - Animated card component
-- `src/components/ui/Toast.tsx` - Animated toast notifications
-
-**Features:**
-- ✅ Fade-in animations
-- ✅ Slide-up animations
-- ✅ Spring animations for smooth feel
-- ✅ Toast animations (fade + slide)
-- ✅ Card entrance animations
-
-**Usage:**
-```typescript
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
-
-<AnimatedCard delay={100} duration={300}>
-  {/* Content */}
-</AnimatedCard>
-```
+**Action Needed:** Add date grouping, regret rating (1-5), bottom sheet
 
 ---
 
-### ✅ 8. Real Device Testing Guide
-**Status:** ✅ **COMPLETE**
+## ❌ Missing
 
-**Files:**
-- `REAL_DEVICE_TESTING.md` - Comprehensive testing guide
+### 1. **Regret Rating Scale (1-5)** ❌
+**Required:** 1-5 scale for regret rating
 
-**Features:**
-- ✅ Installation instructions
-- ✅ Complete testing checklist
-- ✅ Notification testing
-- ✅ Edge cases
-- ✅ Common issues & fixes
-- ✅ ADB commands
-- ✅ Test scenarios
+**Current:** 3 options: Worth it / Regret / Neutral
+
+**Action Needed:** Add 1-5 rating scale to regret tracking
 
 ---
 
-## Summary
+## 📋 Summary
 
-### ✅ All Features Implemented
+**Completed:** 6 items
+**Partially Complete:** 3 items (need restructuring)
+**Missing:** 1 item (regret rating scale)
 
-| Feature | Status | Files |
-|---------|--------|-------|
-| **Error Handling UI** | ✅ Complete | Toast.tsx, useToast.ts |
-| **Basic Tests** | ✅ Complete | jest.config.js, test files |
-| **Onboarding** | ✅ Complete | onboarding.tsx, index.tsx |
-| **Weekly Review** | ✅ Complete | WeeklyReviewCard.tsx (already integrated) |
-| **Export Feature** | ✅ Complete | export.ts, settings.tsx |
-| **Settings Screen** | ✅ Complete | settings.tsx |
-| **Animations** | ✅ Complete | AnimatedCard.tsx, Toast.tsx |
-| **Real Device Testing** | ✅ Complete | REAL_DEVICE_TESTING.md |
+**Overall Progress:** ~70% complete
 
----
-
-## Next Steps
-
-1. **Install Dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Run Tests:**
-   ```bash
-   npm test
-   ```
-
-3. **Test Onboarding:**
-   - Clear app data or reinstall
-   - First launch should show onboarding
-
-4. **Test Error Handling:**
-   - Trigger errors in app
-   - Verify toast notifications appear
-
-5. **Test on Real Device:**
-   - Follow `REAL_DEVICE_TESTING.md`
-   - Build APK and test
-
----
-
-## Notes
-
-- **Test Files:** Excluded from TypeScript checking (Jest handles them)
-- **Onboarding:** Stored in AsyncStorage, can be reset by clearing app data
-- **Toast:** Global component in root layout, accessible from anywhere
-- **Animations:** Use `AnimatedCard` for smooth card entrances
-
----
-
-**Everything is ready!** 🎉
-
+**Next Steps:**
+1. Restructure Onboarding (2-screen flow)
+2. Restructure Dashboard (exact layout match)
+3. Update History (date grouping + regret rating + bottom sheet)
+4. Add regret rating scale (1-5)

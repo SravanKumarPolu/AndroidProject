@@ -27,7 +27,10 @@ export function getWeeklyReview(impulses: Impulse[], weekStart: number): WeeklyR
 
   const cancelled = weekImpulses.filter(i => i.status === 'CANCELLED');
   const executed = weekImpulses.filter(i => i.status === 'EXECUTED');
-  const regretted = executed.filter(i => i.finalFeeling === 'REGRET');
+  // Count regrets: finalFeeling === 'REGRET' OR regretRating >= 3
+  const regretted = executed.filter(i => 
+    i.finalFeeling === 'REGRET' || (i.regretRating !== undefined && i.regretRating >= 3)
+  );
 
   const moneySaved = cancelled.reduce((sum, i) => sum + (i.price || 0), 0);
   const moneyRegretted = regretted.reduce((sum, i) => sum + (i.price || 0), 0);

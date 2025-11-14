@@ -5,9 +5,13 @@
 
 export const appConfig = {
   // App Information
-  name: 'ImpulseVault',
+  name: 'ImpulseVault – Stop Regret Buys',
+  displayName: 'ImpulseVault', // Shorter name for UI
   version: '1.0.0',
   packageName: 'com.impulsevault.app',
+  
+  // Play Store Listing
+  shortDescription: 'Catch your impulses before you buy. Save money, skip regret.',
   
   // Privacy Policy URL
   // TODO: Replace with your actual hosted privacy policy URL before publishing

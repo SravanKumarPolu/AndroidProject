@@ -12,7 +12,10 @@ export const computeStats = (impulses: Impulse[]): UserStats => {
 
   const cancelled = impulses.filter(i => i.status === 'CANCELLED');
   const executed = impulses.filter(i => i.status === 'EXECUTED');
-  const regretted = executed.filter(i => i.finalFeeling === 'REGRET');
+  // Count regrets: finalFeeling === 'REGRET' OR regretRating >= 3
+  const regretted = executed.filter(i => 
+    i.finalFeeling === 'REGRET' || (i.regretRating !== undefined && i.regretRating >= 3)
+  );
 
   const totalSaved = cancelled.reduce((sum, i) => sum + (i.price || 0), 0);
   const totalRegretted = regretted.reduce((sum, i) => sum + (i.price || 0), 0);
@@ -91,7 +94,10 @@ export const computeCategoryStats = (impulses: Impulse[]): CategoryStats[] => {
     const categoryImpulses = impulses.filter(i => i.category === category);
     const cancelled = categoryImpulses.filter(i => i.status === 'CANCELLED');
     const executed = categoryImpulses.filter(i => i.status === 'EXECUTED');
-    const regretted = executed.filter(i => i.finalFeeling === 'REGRET');
+    // Count regrets: finalFeeling === 'REGRET' OR regretRating >= 3
+    const regretted = executed.filter(i => 
+      i.finalFeeling === 'REGRET' || (i.regretRating !== undefined && i.regretRating >= 3)
+    );
 
     const totalPrice = categoryImpulses
       .filter(i => i.price)
