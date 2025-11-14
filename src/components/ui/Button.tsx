@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { typography } from '@/constants/typography';
 import { borderRadius, spacing } from '@/constants/spacing';
 
@@ -25,21 +25,29 @@ export function Button({
   fullWidth = false,
   style,
 }: ButtonProps) {
+  const { colors } = useTheme();
   const isDisabled = disabled || loading;
+
+  // Type-safe access to button colors with fallbacks
+  // Both light and dark colors have the same structure, so we can safely access these properties
+  const buttonPrimaryBg = (colors as any).buttonPrimaryBg || colors.primary[700];
+  const buttonSecondaryBg = (colors as any).buttonSecondaryBg || colors.gray[100];
+  const buttonPrimaryText = (colors as any).buttonPrimaryText || '#FFFFFF';
+  const buttonSecondaryText = (colors as any).buttonSecondaryText || colors.text;
 
   const variantStyles = {
     primary: {
-      backgroundColor: colors.primary[500],
+      backgroundColor: buttonPrimaryBg,
       borderWidth: 0,
     },
     secondary: {
-      backgroundColor: colors.gray[100],
+      backgroundColor: buttonSecondaryBg,
       borderWidth: 0,
     },
     outline: {
       backgroundColor: 'transparent',
       borderWidth: 1,
-      borderColor: colors.primary[500],
+      borderColor: colors.primary[600],
     },
     ghost: {
       backgroundColor: 'transparent',
@@ -66,10 +74,10 @@ export function Button({
   };
 
   const textColor = {
-    primary: colors.textDark,
-    secondary: colors.text,
-    outline: colors.primary[500],
-    ghost: colors.primary[500],
+    primary: buttonPrimaryText,
+    secondary: buttonSecondaryText,
+    outline: colors.primary[600],
+    ghost: colors.primary[600],
   };
 
   return (
@@ -93,7 +101,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? colors.textDark : colors.primary[500]}
+          color={variant === 'primary' ? buttonPrimaryText : colors.primary[600]}
         />
       ) : (
         <Text

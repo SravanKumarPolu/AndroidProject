@@ -68,7 +68,7 @@ export function ImpulseCard({ impulse, onPress, showCountdown = true }: ImpulseC
           </View>
           {impulse.status === 'LOCKED' && (
             <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText, { color: '#FFFFFF' }]}>
                 {isReady ? 'Ready' : 'Locked'}
               </Text>
             </View>

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from './ui/Card';
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
 import { formatCurrency, formatCurrencyCompact } from '@/utils/currency';
@@ -15,6 +15,8 @@ interface StatsCardProps {
 }
 
 export function StatsCard({ stats, variant = 'default' }: StatsCardProps) {
+  const { colors } = useTheme();
+  
   const handleShare = async () => {
     try {
       const shareData = createStatsShareContent(stats);
@@ -31,18 +33,18 @@ export function StatsCard({ stats, variant = 'default' }: StatsCardProps) {
       <Card variant="elevated">
         <View style={styles.compactContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatCurrencyCompact(stats.totalSaved)}</Text>
-            <Text style={styles.statLabel}>Saved</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{formatCurrencyCompact(stats.totalSaved)}</Text>
+            <Text style={[styles.statLabel, { color: colors.textLight }]}>Saved</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.currentStreak}</Text>
-            <Text style={styles.statLabel}>Day Streak</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.currentStreak}</Text>
+            <Text style={[styles.statLabel, { color: colors.textLight }]}>Day Streak</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.totalCancelled}</Text>
-            <Text style={styles.statLabel}>Avoided</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalCancelled}</Text>
+            <Text style={[styles.statLabel, { color: colors.textLight }]}>Avoided</Text>
           </View>
         </View>
       </Card>
@@ -52,41 +54,45 @@ export function StatsCard({ stats, variant = 'default' }: StatsCardProps) {
   return (
     <Card variant="elevated">
       <View style={styles.header}>
-        <Text style={styles.title}>Your Progress</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Your Progress</Text>
         <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
           <Ionicons name="share-outline" size={20} color={colors.primary[600]} />
         </TouchableOpacity>
       </View>
       
-      <View style={styles.mainStat}>
-        <Text style={styles.mainValue}>{formatCurrency(stats.totalSaved)}</Text>
-        <Text style={styles.mainLabel}>Total money saved</Text>
+      <View style={[styles.mainStat, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.mainValue, { color: colors.success[700] }]}>{formatCurrency(stats.totalSaved)}</Text>
+        <Text style={[styles.mainLabel, { color: colors.textLight }]}>Total money saved</Text>
       </View>
 
       <View style={styles.statsGrid}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.currentStreak}</Text>
-          <Text style={styles.statLabel}>Day streak</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.currentStreak}</Text>
+          <Text style={[styles.statLabel, { color: colors.textLight }]}>Day streak</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalCancelled}</Text>
-          <Text style={styles.statLabel}>Impulses avoided</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalCancelled}</Text>
+          <Text style={[styles.statLabel, { color: colors.textLight }]}>Impulses avoided</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalExecuted}</Text>
-          <Text style={styles.statLabel}>Executed</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalExecuted}</Text>
+          <Text style={[styles.statLabel, { color: colors.textLight }]}>Executed</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, stats.regretRate > 50 && styles.regretValue]}>
+          <Text style={[
+            styles.statValue,
+            { color: colors.text },
+            stats.regretRate > 50 && { color: colors.error[600] }
+          ]}>
             {stats.regretRate.toFixed(0)}%
           </Text>
-          <Text style={styles.statLabel}>Regret rate</Text>
+          <Text style={[styles.statLabel, { color: colors.textLight }]}>Regret rate</Text>
         </View>
       </View>
 
       {stats.todaySaved > 0 && (
-        <View style={styles.todayStat}>
-          <Text style={styles.todayLabel}>Today: {formatCurrency(stats.todaySaved)} saved</Text>
+        <View style={[styles.todayStat, { borderTopColor: colors.border }]}>
+          <Text style={[styles.todayLabel, { color: colors.success[700] }]}>Today: {formatCurrency(stats.todaySaved)} saved</Text>
         </View>
       )}
     </Card>
@@ -103,7 +109,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.text,
     flex: 1,
   },
   shareButton: {
@@ -114,17 +119,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   mainValue: {
     fontSize: 36,
     fontWeight: typography.fontWeight.bold,
-    color: colors.success[600],
     marginBottom: spacing.xs,
   },
   mainLabel: {
     fontSize: typography.fontSize.base,
-    color: colors.textLight,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -138,26 +140,22 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.text,
     marginBottom: spacing.xs,
   },
   statLabel: {
     fontSize: typography.fontSize.sm,
-    color: colors.textLight,
   },
   regretValue: {
-    color: colors.error[600],
+    // Color applied dynamically
   },
   todayStat: {
     marginTop: spacing.base,
     paddingTop: spacing.base,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
   todayLabel: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.medium,
-    color: colors.success[600],
     textAlign: 'center',
   },
   compactContainer: {
@@ -168,7 +166,6 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: colors.border,
   },
 });
 

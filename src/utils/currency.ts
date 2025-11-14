@@ -4,8 +4,13 @@
  * These are kept for backward compatibility
  */
 
-export const formatCurrency = (amount: number): string => {
-  return `₹${amount.toLocaleString('en-IN')}`;
+export const formatCurrency = (amount: number | undefined): string => {
+  if (amount === undefined || amount === null) {
+    return '₹0';
+  }
+  // Floor to integer for display (removes decimals)
+  const floored = Math.floor(amount);
+  return `₹${floored.toLocaleString('en-IN')}`;
 };
 
 export const formatCurrencyCompact = (amount: number): string => {
