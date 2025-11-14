@@ -99,9 +99,10 @@ export function createAppShareContent(): ShareContent {
  */
 export async function shareContent(content: ShareContent): Promise<boolean> {
   try {
+    const { logger } = await import('./logger');
     const isAvailable = await Sharing.isAvailableAsync();
     if (!isAvailable) {
-      console.warn('Sharing is not available on this device');
+      logger.warn('Sharing is not available on this device');
       return false;
     }
 
@@ -111,7 +112,8 @@ export async function shareContent(content: ShareContent): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error sharing content:', error);
+    const { logger } = await import('./logger');
+    logger.error('Error sharing content', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 }
@@ -125,16 +127,18 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   try {
     // Try to use expo-clipboard if available, otherwise fallback
     try {
-      const { Clipboard } = await import('@react-native-clipboard/clipboard');
-      await Clipboard.setString(text);
+      const Clipboard = await import('@react-native-clipboard/clipboard');
+      await Clipboard.default.setString(text);
       return true;
     } catch {
       // Fallback: expo-clipboard or other clipboard solution
-      console.warn('Clipboard not available. Install @react-native-clipboard/clipboard');
+      const { logger } = await import('./logger');
+      logger.warn('Clipboard not available. Install @react-native-clipboard/clipboard');
       return false;
     }
   } catch (error) {
-    console.error('Error copying to clipboard:', error);
+    const { logger } = await import('./logger');
+    logger.error('Error copying to clipboard', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 }

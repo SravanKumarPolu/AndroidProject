@@ -46,8 +46,18 @@ export function ImpulseCard({ impulse, onPress, showCountdown = true }: ImpulseC
     return `${timeRemaining.minutes}m ${timeRemaining.seconds}s left`;
   };
 
+  const accessibilityLabel = `${impulse.title}, ${CATEGORY_LABELS[impulse.category]}${
+    impulse.price ? `, ${formatCurrency(impulse.price)}` : ''
+  }, ${isReady ? 'Ready to review' : formatCountdown()}`;
+  
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity 
+      onPress={onPress} 
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={isReady ? 'Tap to review this impulse' : 'Tap to view impulse details'}
+    >
       <Card variant="elevated" style={styles.card}>
         <View style={styles.header}>
           <View style={styles.categoryRow}>
@@ -73,6 +83,9 @@ export function ImpulseCard({ impulse, onPress, showCountdown = true }: ImpulseC
             onPress={handlePhotoPress}
             activeOpacity={0.8}
             style={[styles.photoContainer, { borderColor: colors.border }]}
+            accessibilityRole="button"
+            accessibilityLabel="View photo attachment"
+            accessibilityHint="Opens full screen photo viewer"
           >
             <Image
               source={{ uri: impulse.photoUri }}

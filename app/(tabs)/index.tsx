@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ListRenderItem } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useImpulses } from '@/hooks/useImpulses';
@@ -17,7 +17,9 @@ import { GoalsCard } from '@/components/GoalsCard';
 import { AchievementCard } from '@/components/AchievementCard';
 import { AchievementCelebration } from '@/components/AchievementCelebration';
 import { PatternsCard } from '@/components/PatternsCard';
+import { BudgetCard } from '@/components/BudgetCard';
 import { getLastWeekReview } from '@/utils/weeklyReview';
+import { useBudget } from '@/hooks/useBudget';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
 
@@ -29,6 +31,7 @@ export default function HomeScreen() {
   const { goals, getGoalProgress } = useGoals(impulses);
   const { userLevel, newlyUnlocked, achievementProgress } = useAchievements();
   const { patterns, insights, strongestPatterns } = usePatterns(impulses);
+  const { budgetProgresses, budgetAlerts } = useBudget(impulses);
   
   // Get goal progresses for display
   const goalProgresses = goals.map(goal => getGoalProgress(goal));
@@ -108,7 +111,10 @@ export default function HomeScreen() {
 
         {/* Weekly Review */}
         {impulses.length > 0 && (
-          <WeeklyReviewCard review={getLastWeekReview(impulses)} />
+          <WeeklyReviewCard 
+            review={getLastWeekReview(impulses)}
+            onPress={() => router.push('/weekly-reports')}
+          />
         )}
 
         {/* Weak Categories */}
@@ -119,6 +125,33 @@ export default function HomeScreen() {
         {/* Weak Hours */}
         {impulses.length >= 5 && (
           <WeakHoursCard impulses={impulses} />
+        )}
+
+        {/* Budget Tracking */}
+        {budgetProgresses.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>Budget Tracking</Text>
+              <TouchableOpacity
+                onPress={() => router.push('/budget')}
+                accessibilityRole="button"
+                accessibilityLabel="View all budgets"
+              >
+                <Text style={[styles.viewAll, { color: colors.primary[600] }]}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {budgetProgresses.slice(0, 2).map(progress => {
+              const alert = budgetAlerts.find(a => a.budgetId === progress.budget.id);
+              return (
+                <BudgetCard
+                  key={progress.budget.id}
+                  progress={progress}
+                  alert={alert}
+                  onPress={() => router.push('/budget')}
+                />
+              );
+            })}
+          </View>
         )}
 
         {/* Active Impulses */}
@@ -159,6 +192,9 @@ export default function HomeScreen() {
           style={[styles.fab, styles.fabSecondary, dynamicStyles.fabSecondary]}
           onPress={() => router.push('/quick-add')}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Quick add impulse"
+          accessibilityHint="Opens quick add form to quickly log an impulse"
         >
           <Text style={styles.fabIconSmall}>⚡</Text>
         </TouchableOpacity>
@@ -166,6 +202,9 @@ export default function HomeScreen() {
           style={[styles.fab, dynamicStyles.fab]}
           onPress={() => router.push('/new-impulse')}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Add new impulse"
+          accessibilityHint="Opens form to log a new impulse purchase"
         >
           <Text style={[styles.fabIcon, dynamicStyles.fabIcon]}>+</Text>
           </TouchableOpacity>
@@ -208,10 +247,19 @@ const styles = StyleSheet.create({
   section: {
     marginTop: spacing.xl,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.base,
+  },
   sectionTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    marginBottom: spacing.base,
+  },
+  viewAll: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
   },
   emptyState: {
     alignItems: 'center',

@@ -358,6 +358,14 @@ export function getXPForLevel(level: number): number {
   return baseXP + (levelsOver * 50000);
 }
 
+export type UserLevel = {
+  level: number;
+  currentXP: number;
+  xpForNextLevel: number;
+  totalXP: number;
+  progress: number;
+};
+
 export function calculateLevel(totalXP: number): UserLevel {
   let level = 1;
   let currentXP = totalXP;

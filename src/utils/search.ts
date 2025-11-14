@@ -3,7 +3,7 @@ import { Impulse, ImpulseCategory, EmotionTag, UrgencyLevel } from '@/types/impu
 export interface SearchFilters {
   query?: string;
   categories?: ImpulseCategory[];
-  status?: 'ALL' | 'LOCKED' | 'CANCELLED' | 'EXECUTED';
+  status?: 'ALL' | 'LOCKED' | 'CANCELLED' | 'EXECUTED' | 'REGRETTED';
   emotions?: EmotionTag[];
   urgency?: UrgencyLevel[];
   minPrice?: number;

@@ -3,10 +3,19 @@
  * Replaces console.* with structured logging
  * - Disables logs in production (except errors)
  * - Supports log levels
- * - Can integrate with crash reporting services
+ * - Integrates with Sentry for crash reporting
  */
 
 const isDev = __DEV__;
+
+// Lazy load Sentry to avoid issues if not configured
+let Sentry: any = null;
+try {
+  // Only import if available (will be installed via expo install sentry-expo)
+  Sentry = require('sentry-expo');
+} catch {
+  // Sentry not installed, will gracefully degrade
+}
 
 interface LogContext {
   [key: string]: any;
@@ -43,7 +52,7 @@ export const logger = {
 
   /**
    * Error logs - always shown
-   * In production, should send to crash reporting service
+   * In production, sends to Sentry for crash reporting
    */
   error: (message: string, error?: Error | unknown, context?: LogContext) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -55,14 +64,19 @@ export const logger = {
       context,
     });
 
-    // In production, send to crash reporting service
-    // Example: Sentry.captureException(error, { extra: context });
-    if (!isDev && error instanceof Error) {
-      // TODO: Integrate with Sentry or similar
-      // Sentry.captureException(error, {
-      //   tags: context,
-      //   extra: { message, ...context },
-      // });
+    // Send to Sentry in production
+    if (Sentry && !isDev) {
+      if (error instanceof Error) {
+        Sentry.Native.captureException(error, {
+          tags: context,
+          extra: { message, ...context },
+        });
+      } else {
+        Sentry.Native.captureMessage(message, {
+          level: 'error',
+          extra: { error: errorMessage, ...context },
+        });
+      }
     }
   },
 

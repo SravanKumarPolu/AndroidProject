@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Impulse } from '@/types/impulse';
+import { logger } from '@/utils/logger';
 
 /**
  * Notification service
@@ -36,7 +37,7 @@ export async function requestPermissions(): Promise<boolean> {
 export async function scheduleCoolDownNotification(impulse: Impulse): Promise<string | null> {
   const hasPermission = await requestPermissions();
   if (!hasPermission) {
-    console.warn('Notification permissions not granted');
+    logger.warn('Notification permissions not granted');
     return null;
   }
 
@@ -63,7 +64,7 @@ export async function scheduleCoolDownNotification(impulse: Impulse): Promise<st
 
     return notificationId;
   } catch (error) {
-    console.error('Error scheduling notification:', error);
+    logger.error('Error scheduling notification', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -104,7 +105,7 @@ export async function scheduleRegretCheckNotification(impulse: Impulse): Promise
 
     return notificationId;
   } catch (error) {
-    console.error('Error scheduling regret check:', error);
+    logger.error('Error scheduling regret check', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -116,7 +117,7 @@ export async function cancelNotification(notificationId: string): Promise<void> 
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
   } catch (error) {
-    console.error('Error canceling notification:', error);
+    logger.error('Error canceling notification', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -127,7 +128,7 @@ export async function cancelAllNotifications(): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (error) {
-    console.error('Error canceling all notifications:', error);
+    logger.error('Error canceling all notifications', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -138,7 +139,7 @@ export async function getAllScheduledNotifications(): Promise<Notifications.Noti
   try {
     return await Notifications.getAllScheduledNotificationsAsync();
   } catch (error) {
-    console.error('Error getting scheduled notifications:', error);
+    logger.error('Error getting scheduled notifications', error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }

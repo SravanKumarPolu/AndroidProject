@@ -32,7 +32,8 @@ export function ImagePickerButton({
         onImageSelected(uri);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      const { logger } = await import('@/utils/logger');
+      logger.error('Error picking image', error instanceof Error ? error : new Error(String(error)));
       Alert.alert(
         'Error',
         error instanceof Error ? error.message : 'Failed to pick image. Please try again.',
@@ -89,6 +90,9 @@ export function ImagePickerButton({
             style={[styles.removeButton, { backgroundColor: colors.error[500] }]}
             onPress={handleRemove}
             disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel="Remove photo"
+            accessibilityHint="Removes the attached photo"
           >
             <Ionicons name="close" size={16} color={colors.textDark} />
           </TouchableOpacity>
@@ -97,6 +101,10 @@ export function ImagePickerButton({
           style={[styles.changeButton, { borderColor: colors.border }]}
           onPress={handleShowOptions}
           disabled={disabled || picking}
+          accessibilityRole="button"
+          accessibilityLabel="Change photo"
+          accessibilityHint="Opens options to take a new photo or select from library"
+          accessibilityState={{ disabled: disabled || picking }}
         >
           {picking ? (
             <ActivityIndicator size="small" color={colors.primary[600]} />
@@ -126,6 +134,10 @@ export function ImagePickerButton({
       onPress={handleShowOptions}
       disabled={disabled || picking}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel="Add photo"
+      accessibilityHint="Opens options to take a photo or select from library"
+      accessibilityState={{ disabled: disabled || picking }}
     >
       {picking ? (
         <ActivityIndicator size="small" color={colors.primary[600]} />

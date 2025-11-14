@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Impulse } from '@/types/impulse';
+import { logger } from '@/utils/logger';
 
 const IMPULSES_KEY = '@impulsevault:impulses';
 const SETTINGS_KEY = '@impulsevault:settings';
@@ -16,7 +17,7 @@ export const storage = {
       const data = await AsyncStorage.getItem(IMPULSES_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('Error getting impulses:', error);
+      logger.error('Error getting impulses', error instanceof Error ? error : new Error(String(error)));
       return [];
     }
   },
@@ -25,7 +26,7 @@ export const storage = {
     try {
       await AsyncStorage.setItem(IMPULSES_KEY, JSON.stringify(impulses));
     } catch (error) {
-      console.error('Error saving impulses:', error);
+      logger.error('Error saving impulses', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   },
@@ -55,7 +56,7 @@ export const storage = {
     try {
       await AsyncStorage.removeItem(IMPULSES_KEY);
     } catch (error) {
-      console.error('Error clearing impulses:', error);
+      logger.error('Error clearing impulses', error instanceof Error ? error : new Error(String(error)));
     }
   },
 
@@ -65,7 +66,7 @@ export const storage = {
       const data = await AsyncStorage.getItem(SETTINGS_KEY);
       return data ? JSON.parse(data) : {};
     } catch (error) {
-      console.error('Error getting settings:', error);
+      logger.error('Error getting settings', error instanceof Error ? error : new Error(String(error)));
       return {};
     }
   },
@@ -74,7 +75,7 @@ export const storage = {
     try {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch (error) {
-      console.error('Error saving settings:', error);
+      logger.error('Error saving settings', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   },

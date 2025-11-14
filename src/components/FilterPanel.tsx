@@ -120,7 +120,12 @@ export function FilterPanel({
         <Card variant="elevated" style={[styles.panel, { backgroundColor: colors.surface }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>Filters</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity 
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close filters"
+              accessibilityHint="Closes the filter panel"
+            >
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -143,6 +148,9 @@ export function FilterPanel({
                       },
                     ]}
                     onPress={() => toggleCategory(category)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by ${CATEGORY_LABELS[category]} category`}
+                    accessibilityState={{ selected: localFilters.categories?.includes(category) || false }}
                   >
                     <Text
                       style={[
@@ -178,6 +186,9 @@ export function FilterPanel({
                       },
                     ]}
                     onPress={() => toggleEmotion(emotion)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by ${EMOTION_LABELS[emotion]} emotion`}
+                    accessibilityState={{ selected: localFilters.emotions?.includes(emotion) || false }}
                   >
                     <Text
                       style={[
@@ -213,6 +224,9 @@ export function FilterPanel({
                       },
                     ]}
                     onPress={() => toggleUrgency(urgency)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by ${URGENCY_LABELS[urgency]} urgency`}
+                    accessibilityState={{ selected: localFilters.urgency?.includes(urgency) || false }}
                   >
                     <Text
                       style={[

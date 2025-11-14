@@ -20,7 +20,8 @@ export function StatsCard({ stats, variant = 'default' }: StatsCardProps) {
       const shareData = createStatsShareContent(stats);
       await shareContent(shareData);
     } catch (error) {
-      console.error('Error sharing stats:', error);
+      const { logger } = await import('@/utils/logger');
+      logger.error('Error sharing stats', error instanceof Error ? error : new Error(String(error)));
       Alert.alert('Error', 'Failed to share stats. Please try again.');
     }
   };

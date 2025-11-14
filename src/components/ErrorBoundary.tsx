@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '@/constants/colors';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
+import { logger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -35,8 +36,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    // In production, you might want to log this to an error reporting service
+    // Log to logger (which will send to Sentry in production)
+    logger.error('ErrorBoundary caught an error', error, {
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   handleReset = () => {
@@ -70,6 +73,9 @@ export class ErrorBoundary extends Component<Props, State> {
             <TouchableOpacity
               style={styles.button}
               onPress={this.handleReset}
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
+              accessibilityHint="Attempts to reload the app after the error"
             >
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>

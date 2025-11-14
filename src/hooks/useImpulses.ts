@@ -57,7 +57,10 @@ export function useImpulses() {
       
       // Auto-sync to cloud
       if (migrated.length > 0) {
-        autoSync(migrated).catch(err => console.error('Auto-sync error:', err));
+        autoSync(migrated).catch(err => {
+          const { logger } = require('@/utils/logger');
+          logger.error('Auto-sync error', err instanceof Error ? err : new Error(String(err)));
+        });
       }
       
       setError(null);
@@ -76,6 +79,7 @@ export function useImpulses() {
     urgency: Impulse['urgency'];
     coolDownPeriod?: Impulse['coolDownPeriod'];
     photoUri?: string;
+    location?: Impulse['location'];
   }) => {
     try {
       const now = Date.now();
@@ -95,6 +99,7 @@ export function useImpulses() {
         reviewAt,
         status: 'LOCKED',
         photoUri: formData.photoUri,
+        location: formData.location,
       };
 
       await storage.addImpulse(newImpulse);

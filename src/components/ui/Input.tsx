@@ -11,6 +11,9 @@ interface InputProps extends TextInputProps {
 }
 
 export function Input({ label, error, containerStyle, style, ...props }: InputProps) {
+  const accessibilityLabel = props.accessibilityLabel || label || props.placeholder || 'Text input';
+  const accessibilityHint = error ? `${accessibilityLabel}. ${error}` : props.accessibilityHint;
+  
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
@@ -21,9 +24,20 @@ export function Input({ label, error, containerStyle, style, ...props }: InputPr
           style,
         ]}
         placeholderTextColor={colors.textLight}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityRole="text"
         {...props}
       />
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <Text 
+          style={styles.error}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }

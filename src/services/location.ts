@@ -84,8 +84,8 @@ export async function getCurrentLocation(): Promise<LocationData | null> {
           addr.streetNumber,
           addr.district,
         ].filter(Boolean).join(', ');
-        city = addr.city || addr.subregion;
-        country = addr.country;
+        city = addr.city || addr.subregion || undefined;
+        country = addr.country || undefined;
       }
     } catch (geocodeError) {
       console.error('Error reverse geocoding:', geocodeError);

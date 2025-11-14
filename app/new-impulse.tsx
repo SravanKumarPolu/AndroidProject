@@ -98,7 +98,12 @@ export default function NewImpulseScreen() {
       const errors = validation.errors;
       if (errors) {
         const errorMessages = Object.values(errors)
-          .flatMap(field => field?._errors || [])
+          .flatMap(field => {
+            if (typeof field === 'object' && field !== null && '_errors' in field) {
+              return field._errors || [];
+            }
+            return [];
+          })
           .filter(Boolean);
         showError(errorMessages[0] || 'Please check your input');
       } else {
@@ -126,6 +131,8 @@ export default function NewImpulseScreen() {
       // Create impulse with photo URI and location
       await createImpulse({
         ...validation.data!,
+        price: validation.data!.price ?? undefined,
+        emotion: validation.data!.emotion ?? undefined,
         photoUri: finalPhotoUri,
         location: currentLocation || undefined,
       });

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Impulse } from '@/types/impulse';
 import { AppSettings } from './settings';
 import { getSupabaseClient, isSupabaseConfigured } from './supabase';
+import { logger } from '@/utils/logger';
 
 /**
  * Cloud Sync Service
@@ -39,7 +40,7 @@ export async function setCloudSyncEnabled(enabled: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(SYNC_ENABLED_KEY, enabled.toString());
   } catch (error) {
-    console.error('Error setting sync enabled:', error);
+    logger.error('Error setting sync enabled', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -62,7 +63,7 @@ async function setLastSyncTime(timestamp: number): Promise<void> {
   try {
     await AsyncStorage.setItem(LAST_SYNC_KEY, timestamp.toString());
   } catch (error) {
-    console.error('Error setting last sync time:', error);
+    logger.error('Error setting last sync time', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -73,7 +74,7 @@ export async function markPendingSync(impulses: Impulse[]): Promise<void> {
   try {
     await AsyncStorage.setItem(SYNC_PENDING_KEY, JSON.stringify(impulses));
   } catch (error) {
-    console.error('Error marking pending sync:', error);
+    logger.error('Error marking pending sync', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -96,7 +97,7 @@ async function clearPendingSync(): Promise<void> {
   try {
     await AsyncStorage.removeItem(SYNC_PENDING_KEY);
   } catch (error) {
-    console.error('Error clearing pending sync:', error);
+    logger.error('Error clearing pending sync', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -110,7 +111,7 @@ export async function syncToCloud(impulses: Impulse[]): Promise<boolean> {
   }
 
   if (!isSupabaseConfigured()) {
-    console.warn('Supabase not configured. Please add credentials to .env file.');
+    logger.warn('Supabase not configured. Please add credentials to .env file.');
     return false;
   }
 
@@ -127,7 +128,7 @@ export async function syncToCloud(impulses: Impulse[]): Promise<boolean> {
       // Create anonymous session for sync
       const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
       if (anonError) {
-        console.error('Error creating anonymous session:', anonError);
+        logger.error('Error creating anonymous session', anonError instanceof Error ? anonError : new Error(String(anonError)));
         await markPendingSync(impulses);
         return false;
       }
@@ -164,7 +165,7 @@ export async function syncToCloud(impulses: Impulse[]): Promise<boolean> {
     
     return true;
   } catch (error) {
-    console.error('Error syncing to cloud:', error);
+    logger.error('Error syncing to cloud', error instanceof Error ? error : new Error(String(error)));
     // Mark as pending for retry
     await markPendingSync(impulses);
     return false;
@@ -220,7 +221,7 @@ export async function syncSettingsToCloud(settings: AppSettings): Promise<boolea
 
     return true;
   } catch (error) {
-    console.error('Error syncing settings:', error);
+    logger.error('Error syncing settings', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 }
@@ -268,7 +269,7 @@ export async function syncFromCloud(): Promise<Impulse[] | null> {
     // Remove user_id from response (not part of Impulse type)
     return data?.map(({ user_id, ...impulse }) => impulse as Impulse) || null;
   } catch (error) {
-    console.error('Error syncing from cloud:', error);
+    logger.error('Error syncing from cloud', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

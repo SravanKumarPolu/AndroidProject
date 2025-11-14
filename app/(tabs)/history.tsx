@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, ListRenderItem } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useImpulses } from '@/hooks/useImpulses';
@@ -45,7 +45,7 @@ export default function HistoryScreen() {
     const searchFilters: SearchFilters = {
       ...advancedFilters,
       query: searchQuery,
-      status: filter === 'ALL' ? undefined : filter,
+      status: filter === 'ALL' ? undefined : (filter === 'REGRETTED' ? filter : filter),
     };
 
     return searchImpulses(result, searchFilters);
@@ -166,23 +166,23 @@ export default function HistoryScreen() {
       </ScrollView>
 
       {/* Impulses List */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+      <FlatList
+        data={filteredImpulses}
+        renderItem={({ item: impulse }) => (
+          <ImpulseCard
+            impulse={impulse}
+            showCountdown={false}
+          />
+        )}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          filteredImpulses.length === 0 ? styles.emptyStateContainer : styles.content
+        }
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-      >
-        {filteredImpulses.length > 0 ? (
-          filteredImpulses.map(impulse => (
-            <ImpulseCard
-              key={impulse.id}
-              impulse={impulse}
-              showCountdown={false}
-            />
-          ))
-        ) : (
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📜</Text>
             <Text style={styles.emptyTitle}>No impulses found</Text>
@@ -192,8 +192,12 @@ export default function HistoryScreen() {
                 : `No ${filter.toLowerCase()} impulses yet.`}
             </Text>
           </View>
-        )}
-      </ScrollView>
+        }
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        removeClippedSubviews={true}
+      />
 
       {/* Filter Panel */}
       <FilterPanel
@@ -287,11 +291,13 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
   },
-  scrollView: {
-    flex: 1,
-  },
   content: {
     padding: spacing.base,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',

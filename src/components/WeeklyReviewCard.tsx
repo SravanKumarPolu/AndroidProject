@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from './ui/Card';
 import { colors } from '@/constants/colors';
@@ -8,6 +8,7 @@ import { spacing } from '@/constants/spacing';
 import { formatCurrency } from '@/utils/currency';
 import { formatDate } from '@/utils/date';
 import { WeeklyReview } from '@/utils/weeklyReview';
+import { createWeeklySummaryShareContent, shareContent } from '@/utils/share';
 
 interface WeeklyReviewCardProps {
   review: WeeklyReview;
@@ -15,6 +16,21 @@ interface WeeklyReviewCardProps {
 }
 
 export function WeeklyReviewCard({ review, onPress }: WeeklyReviewCardProps) {
+  const handleShare = async () => {
+    try {
+      const shareData = createWeeklySummaryShareContent(
+        review.moneySaved,
+        review.totalCancelled,
+        review.streak
+      );
+      await shareContent(shareData);
+    } catch (error) {
+      const { logger } = require('@/utils/logger');
+      logger.error('Error sharing weekly review', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('Error', 'Failed to share weekly review. Please try again.');
+    }
+  };
+
   const content = (
     <View>
       <View style={styles.header}>
@@ -24,9 +40,14 @@ export function WeeklyReviewCard({ review, onPress }: WeeklyReviewCardProps) {
           </View>
           <Text style={styles.title}>Weekly Review</Text>
         </View>
-        <Text style={styles.date}>
-          {formatDate(review.weekStart)} - {formatDate(review.weekEnd)}
-        </Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.date}>
+            {formatDate(review.weekStart)} - {formatDate(review.weekEnd)}
+          </Text>
+          <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+            <Ionicons name="share-outline" size={18} color={colors.primary[600]} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.statsRow}>
@@ -106,9 +127,17 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.text,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   date: {
     fontSize: typography.fontSize.sm,
     color: colors.textLight,
+  },
+  shareButton: {
+    padding: spacing.xs / 2,
   },
   statsRow: {
     flexDirection: 'row',

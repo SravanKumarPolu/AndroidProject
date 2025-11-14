@@ -3,6 +3,7 @@ import { getWeakHours } from '@/utils/timePatterns';
 import { formatHour } from '@/utils/timePatterns';
 import * as Notifications from 'expo-notifications';
 import { requestPermissions } from './notifications';
+import { logger } from '@/utils/logger';
 
 /**
  * Smart Prompts Service
@@ -107,16 +108,40 @@ export async function sendSmartPrompt(
         },
       });
     } catch (error) {
-      console.error('Error sending smart prompt:', error);
+      logger.error('Error sending smart prompt', error instanceof Error ? error : new Error(String(error)));
     }
   }
 }
 
 /**
  * Schedule daily smart prompts
+ * Schedules recurring notifications based on user patterns
  */
 export async function scheduleDailySmartPrompts(impulses: Impulse[]): Promise<void> {
+  const hasPermission = await requestPermissions();
+  if (!hasPermission) {
+    return;
+  }
+
   const context = analyzePatterns(impulses);
+  
+  // Only schedule if user has enough data (5+ impulses)
+  if (impulses.length < 5) {
+    return;
+  }
+  
+  // Cancel existing smart prompt notifications
+  try {
+    const allNotifications = await Notifications.getAllScheduledNotificationsAsync();
+    const smartPrompts = allNotifications.filter(
+      n => n.content.data?.type === 'smart_prompt'
+    );
+    for (const notification of smartPrompts) {
+      await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+    }
+  } catch (error) {
+    logger.error('Error canceling existing smart prompts', error instanceof Error ? error : new Error(String(error)));
+  }
   
   // Schedule time-based prompt for weak hours
   if (context.weakHours.length > 0) {
@@ -142,14 +167,43 @@ export async function scheduleDailySmartPrompts(impulses: Impulse[]): Promise<vo
           sound: false,
         },
         trigger: {
-          seconds: Math.floor(delay / 1000),
+          seconds: Math.max(1, Math.floor(delay / 1000)),
           repeats: true,
-          hour: weakHour,
-          minute: 0,
         },
       });
     } catch (error) {
-      console.error('Error scheduling daily prompt:', error);
+      logger.error('Error scheduling daily prompt', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  // Schedule daily reminder for active impulses (if user has active impulses)
+  const activeImpulses = impulses.filter(i => i.status === 'LOCKED');
+  if (activeImpulses.length > 0) {
+    const now = new Date();
+    const reminderTime = new Date();
+    reminderTime.setHours(20, 0, 0, 0); // 8 PM daily reminder
+    
+    if (reminderTime <= now) {
+      reminderTime.setDate(reminderTime.getDate() + 1);
+    }
+
+    const delay = reminderTime.getTime() - now.getTime();
+
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '🔒 Daily Check-in',
+          body: `You have ${activeImpulses.length} impulse${activeImpulses.length > 1 ? 's' : ''} in cool-down. Review them!`,
+          data: { type: 'smart_prompt', trigger: 'reminder' },
+          sound: false,
+        },
+        trigger: {
+          seconds: Math.max(1, Math.floor(delay / 1000)),
+          repeats: true,
+        },
+      });
+    } catch (error) {
+      logger.error('Error scheduling daily reminder', error instanceof Error ? error : new Error(String(error)));
     }
   }
 }
@@ -165,14 +219,86 @@ export async function checkAndSendContextualPrompt(impulses: Impulse[]): Promise
     return;
   }
 
-  // Check if current hour is weak hour
+  // Check if current hour is weak hour (only send once per hour)
   if (isWeakHour(context)) {
-    await sendSmartPrompt(context, 'time_based');
+    const lastPromptTime = await getLastSmartPromptTime();
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+    
+    if (!lastPromptTime || lastPromptTime < oneHourAgo) {
+      await sendSmartPrompt(context, 'time_based');
+      await setLastSmartPromptTime(now);
+    }
   }
 
-  // Check if user has pattern of regrets
+  // Check if user has pattern of regrets (only send once per day)
   if (context.recentRegrets.length >= 3) {
-    await sendSmartPrompt(context, 'pattern_based');
+    const lastPatternPrompt = await getLastPatternPromptTime();
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    
+    if (!lastPatternPrompt || lastPatternPrompt < oneDayAgo) {
+      await sendSmartPrompt(context, 'pattern_based');
+      await setLastPatternPromptTime(now);
+    }
+  }
+}
+
+/**
+ * Get last smart prompt time from storage
+ */
+async function getLastSmartPromptTime(): Promise<number | null> {
+  try {
+    const { storage } = await import('@/services/storage');
+    const settings = await storage.getSettings();
+    return settings.lastSmartPromptTime || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Set last smart prompt time
+ */
+async function setLastSmartPromptTime(timestamp: number): Promise<void> {
+  try {
+    const { storage } = await import('@/services/storage');
+    const settings = await storage.getSettings();
+    await storage.saveSettings({
+      ...settings,
+      lastSmartPromptTime: timestamp,
+    });
+  } catch (error) {
+    logger.error('Error saving last smart prompt time', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
+ * Get last pattern prompt time
+ */
+async function getLastPatternPromptTime(): Promise<number | null> {
+  try {
+    const { storage } = await import('@/services/storage');
+    const settings = await storage.getSettings();
+    return settings.lastPatternPromptTime || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Set last pattern prompt time
+ */
+async function setLastPatternPromptTime(timestamp: number): Promise<void> {
+  try {
+    const { storage } = await import('@/services/storage');
+    const settings = await storage.getSettings();
+    await storage.saveSettings({
+      ...settings,
+      lastPatternPromptTime: timestamp,
+    });
+  } catch (error) {
+    logger.error('Error saving last pattern prompt time', error instanceof Error ? error : new Error(String(error)));
   }
 }
 

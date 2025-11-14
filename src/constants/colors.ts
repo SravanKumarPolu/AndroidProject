@@ -96,6 +96,7 @@ export const colors = {
   surface: '#FFFFFF',
   text: '#1F2937',
   textLight: '#6B7280',
+  textDark: '#111827',
   textSecondary: '#4B5563',
   border: '#E5E7EB',
   borderLight: '#F3F4F6',
@@ -114,13 +115,14 @@ export const darkColors = {
   surface: '#1E293B', // Dark slate surface
   text: '#F1F5F9', // Light slate text
   textLight: '#94A3B8', // Medium slate text
+  textDark: '#F8FAFC', // Very light text for dark theme
   textSecondary: '#CBD5E1', // Lighter slate text
   border: '#334155', // Dark slate border
   borderLight: '#1E293B', // Darker slate border
 } as const;
 
-// Type for theme colors
-export type ThemeColors = typeof colors;
+// Type for theme colors (union of light and dark)
+export type ThemeColors = typeof colors | typeof darkColors;
 
 // Status colors (same for both themes)
 export const statusColors = {

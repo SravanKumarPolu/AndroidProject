@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Card } from '@/components/ui/Card';
 import { AchievementProgress, UserLevel } from '@/types/achievement';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
+import { createAchievementShareContent, shareContent } from '@/utils/share';
 
 interface AchievementCardProps {
   level?: UserLevel;
@@ -15,6 +16,21 @@ interface AchievementCardProps {
 
 export function AchievementCard({ level, recentAchievements = [], onPress }: AchievementCardProps) {
   const { colors } = useTheme();
+
+  const handleShareAchievement = async (achievement: AchievementProgress) => {
+    try {
+      const shareData = createAchievementShareContent(
+        achievement.achievement.title,
+        level?.level || 1,
+        level?.totalXP || 0
+      );
+      await shareContent(shareData);
+    } catch (error) {
+      const { logger } = require('@/utils/logger');
+      logger.error('Error sharing achievement', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('Error', 'Failed to share achievement. Please try again.');
+    }
+  };
 
   if (!level) {
     return null;
@@ -77,6 +93,12 @@ export function AchievementCard({ level, recentAchievements = [], onPress }: Ach
                     +{ap.achievement.xpReward} XP
                   </Text>
                 </View>
+                <TouchableOpacity
+                  onPress={() => handleShareAchievement(ap)}
+                  style={styles.shareButton}
+                >
+                  <Ionicons name="share-outline" size={16} color={colors.primary[600]} />
+                </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -158,6 +180,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  shareButton: {
+    padding: spacing.xs / 2,
   },
   recentIcon: {
     fontSize: 24,

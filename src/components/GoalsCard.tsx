@@ -28,7 +28,8 @@ export function GoalsCard({ goals, onPress, maxDisplay = 3 }: GoalsCardProps) {
       );
       await shareContent(shareData);
     } catch (error) {
-      console.error('Error sharing goal:', error);
+      const { logger } = await import('@/utils/logger');
+      logger.error('Error sharing goal', error instanceof Error ? error : new Error(String(error)));
       Alert.alert('Error', 'Failed to share goal. Please try again.');
     }
   };

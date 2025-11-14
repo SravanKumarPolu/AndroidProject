@@ -89,11 +89,13 @@ export async function exportData(
       return true;
     } else {
       // Fallback: copy to clipboard or show file path
-      console.log('File saved to:', fileUri);
+      const { logger } = await import('./logger');
+      logger.info('File saved to:', fileUri);
       return false;
     }
   } catch (error) {
-    console.error('Error exporting data:', error);
+    const { logger } = await import('./logger');
+    logger.error('Error exporting data', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }

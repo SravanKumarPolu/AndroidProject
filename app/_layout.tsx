@@ -13,6 +13,20 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { Toast } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { logger } from '@/utils/logger';
+
+// Initialize Sentry if available
+let Sentry: any = null;
+try {
+  Sentry = require('sentry-expo');
+  if (Sentry && !__DEV__) {
+    // Sentry will be initialized via app.json or expo config
+    // This is just a fallback initialization
+  }
+} catch {
+  // Sentry not installed, will gracefully degrade
+  logger.debug('Sentry not available - error reporting will use logger only');
+}
 
 function RootLayoutContent() {
   const router = useRouter();
@@ -45,7 +59,7 @@ function RootLayoutContent() {
     const handleDeepLink = (url: string) => {
       try {
         const { path, queryParams } = Linking.parse(url);
-        console.log('Deep link received:', { url, path, queryParams });
+        logger.debug('Deep link received:', { url, path, queryParams });
         
         if (path === 'quick-add' || path === '/quick-add') {
           router.push('/quick-add');
@@ -60,7 +74,7 @@ function RootLayoutContent() {
           router.push('/(tabs)');
         }
       } catch (error) {
-        console.error('Error handling deep link:', error);
+        logger.error('Error handling deep link', error instanceof Error ? error : new Error(String(error)));
       }
     };
 
@@ -68,27 +82,29 @@ function RootLayoutContent() {
     Linking.getInitialURL()
       .then(url => {
         if (url) {
-          console.log('Initial URL:', url);
+          logger.debug('Initial URL:', url);
           handleDeepLink(url);
         }
       })
-      .catch(err => console.error('Error getting initial URL:', err));
+      .catch(err => logger.error('Error getting initial URL', err instanceof Error ? err : new Error(String(err))));
 
     // Handle subsequent URLs (when app is already running)
     const subscription = Linking.addEventListener('url', ({ url }) => {
-      console.log('URL event received:', url);
+      logger.debug('URL event received:', url);
       handleDeepLink(url);
     });
 
     return () => subscription.remove();
   }, [router]);
 
-  // Send smart prompts when app opens
+  // Send smart prompts when app opens and schedule daily prompts
   useEffect(() => {
     if (pathname === '/(tabs)' && impulses.length >= 5) {
       // Small delay to ensure app is ready
-      setTimeout(() => {
-        checkAndSendContextualPrompt(impulses);
+      setTimeout(async () => {
+        const { checkAndSendContextualPrompt, scheduleDailySmartPrompts } = await import('@/services/smartPrompts');
+        await checkAndSendContextualPrompt(impulses);
+        await scheduleDailySmartPrompts(impulses);
       }, 2000);
     }
   }, [pathname, impulses.length]);
@@ -113,6 +129,8 @@ function RootLayoutContent() {
             <Stack.Screen name="goals" options={{ presentation: 'card' }} />
             <Stack.Screen name="achievements" options={{ presentation: 'card' }} />
             <Stack.Screen name="patterns" options={{ presentation: 'card' }} />
+            <Stack.Screen name="weekly-reports" options={{ presentation: 'card' }} />
+            <Stack.Screen name="budget" options={{ presentation: 'card' }} />
           </Stack>
           <Toast
             message={toast.message}

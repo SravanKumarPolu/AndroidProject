@@ -31,6 +31,9 @@ export function SearchBar({
         onChangeText={onChangeText}
         autoCapitalize="none"
         autoCorrect={false}
+        accessibilityRole="search"
+        accessibilityLabel="Search impulses"
+        accessibilityHint="Type to search through your impulses"
       />
       {value.length > 0 && (
         <TouchableOpacity
@@ -39,6 +42,9 @@ export function SearchBar({
             onClear?.();
           }}
           style={styles.clearButton}
+          accessibilityRole="button"
+          accessibilityLabel="Clear search"
+          accessibilityHint="Clears the search input"
         >
           <Ionicons name="close-circle" size={20} color={colors.textLight} />
         </TouchableOpacity>
