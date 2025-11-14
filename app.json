@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "ImpulseVault",
+    "slug": "impulsevault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#6366F1"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.impulsevault.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6366F1"
+      },
+      "package": "com.impulsevault.app",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
+      ],
+      "shortcuts": [
+        {
+          "name": "Quick Add",
+          "icon": "./assets/icon.png",
+          "shortcutId": "quick_add",
+          "intentFilters": [
+            {
+              "action": "android.intent.action.VIEW",
+              "category": ["android.intent.category.DEFAULT"],
+              "data": {
+                "scheme": "impulsevault",
+                "host": "quick-add"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#6366F1",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to attach images to impulses.",
+          "cameraPermission": "The app accesses your camera to take photos for impulses."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ImpulseVault uses your location to provide insights about where you make impulse purchases.",
+          "locationAlwaysPermission": "ImpulseVault uses your location to provide insights about where you make impulse purchases.",
+          "locationWhenInUsePermission": "ImpulseVault uses your location to provide insights about where you make impulse purchases."
+        }
+      ]
+    ],
+    "scheme": "impulsevault",
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+}
+
