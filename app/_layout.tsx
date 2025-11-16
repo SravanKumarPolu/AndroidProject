@@ -48,6 +48,9 @@ function RootLayoutContent() {
       } else if (data?.type === 'smart_prompt') {
         // Navigate to home when smart prompt is tapped
         router.push('/(tabs)');
+      } else if (data?.type === 'quick_add') {
+        // One-tap quick add from notification
+        router.push('/quick-add');
       }
     });
 
@@ -62,7 +65,8 @@ function RootLayoutContent() {
         logger.debug('Deep link received:', { url, path, queryParams });
         
         if (path === 'quick-add' || path === '/quick-add') {
-          router.push('/quick-add');
+          // Forward query params to quick-add so fields can be prefilled
+          router.push({ pathname: '/quick-add', params: queryParams || {} });
         } else if (path?.startsWith('review-impulse/')) {
           // Handle review deep links (from notifications)
           const impulseId = path.split('/').pop();

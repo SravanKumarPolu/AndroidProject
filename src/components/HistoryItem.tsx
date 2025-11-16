@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
@@ -17,26 +18,26 @@ export function HistoryItem({ impulse, onPress }: HistoryItemProps) {
 
   const getStatusLabel = () => {
     if (impulse.status === 'CANCELLED') {
-      return { label: 'Skipped', emoji: '✅', color: colors.success[700] };
+      return { label: 'Skipped', icon: 'checkmark-circle', color: colors.success[700] as string };
     }
     if (impulse.status === 'EXECUTED') {
       if (impulse.regretRating) {
         if (impulse.regretRating >= 4) {
-          return { label: 'Regret', emoji: '😭', color: colors.error[600] };
+          return { label: 'Regret', icon: 'sad-outline', color: colors.error[600] as string };
         } else if (impulse.regretRating <= 2) {
-          return { label: 'No Regret', emoji: '😌', color: colors.success[600] };
+          return { label: 'No Regret', icon: 'happy-outline', color: colors.success[600] as string };
         } else {
-          return { label: 'Neutral', emoji: '😐', color: colors.textLight };
+          return { label: 'Neutral', icon: 'remove-circle-outline', color: colors.textLight as string };
         }
       } else if (impulse.finalFeeling === 'REGRET') {
-        return { label: 'Regret', emoji: '😭', color: colors.error[600] };
+        return { label: 'Regret', icon: 'sad-outline', color: colors.error[600] as string };
       } else if (impulse.finalFeeling === 'WORTH_IT') {
-        return { label: 'No Regret', emoji: '😌', color: colors.success[600] };
+        return { label: 'No Regret', icon: 'happy-outline', color: colors.success[600] as string };
       } else {
-        return { label: 'Neutral', emoji: '😐', color: colors.textLight };
+        return { label: 'Neutral', icon: 'remove-circle-outline', color: colors.textLight as string };
       }
     }
-    return { label: 'Locked', emoji: '🔒', color: colors.textLight };
+    return { label: 'Locked', icon: 'lock-closed-outline', color: colors.textLight as string };
   };
 
   const getRegretRatingText = () => {
@@ -54,12 +55,18 @@ export function HistoryItem({ impulse, onPress }: HistoryItemProps) {
       style={[styles.item, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={onPress}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${impulse.title}, ${impulse.status.toLowerCase()}${impulse.price ? `, ${formatCurrency(impulse.price)}` : ''}`}
+      accessibilityHint="Opens impulse details"
     >
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={[styles.statusLabel, { color: statusInfo.color }]}>
-            [{statusInfo.label} {statusInfo.emoji}]
-          </Text>
+          <View style={styles.statusPill}>
+            <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+            <Text style={[styles.statusLabel, { color: statusInfo.color }]}>
+              {statusInfo.label}
+            </Text>
+          </View>
         </View>
         <Text style={[styles.title, { color: colors.text }]}>{impulse.title}</Text>
         <View style={styles.meta}>
@@ -95,6 +102,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   statusLabel: {
     fontSize: typography.fontSize.sm,

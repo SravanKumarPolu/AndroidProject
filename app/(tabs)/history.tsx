@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, SectionList } from 'react-native';
+import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useImpulses } from '@/hooks/useImpulses';
@@ -18,7 +19,7 @@ type FilterType = 'ALL' | 'CANCELLED' | 'EXECUTED' | 'REGRETTED';
 
 export default function HistoryScreen() {
   const { colors } = useTheme();
-  const { impulses, loading, loadImpulses } = useImpulses();
+  const { impulses, loading, error, loadImpulses } = useImpulses();
   const [filter, setFilter] = useState<FilterType>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -169,6 +170,8 @@ export default function HistoryScreen() {
               },
             ]}
             onPress={() => setFilter(value)}
+            accessibilityRole="button"
+            accessibilityLabel={`Filter ${label}`}
           >
             <Text
               style={[
@@ -184,15 +187,29 @@ export default function HistoryScreen() {
         ))}
       </ScrollView>
 
+      {/* Error state with retry */}
+      {!!error && (
+        <View style={[styles.content, { padding: spacing.base }]}>
+          <View style={{ padding: spacing.base, borderRadius: spacing.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.error[50] }}>
+            <Text style={{ color: colors.error[700], marginBottom: spacing.sm }}>Couldn’t load your history.</Text>
+            <TouchableOpacity onPress={onRefresh} accessibilityRole="button" accessibilityLabel="Try again" style={{ alignSelf: 'flex-start', paddingHorizontal: spacing.base, paddingVertical: spacing.xs, borderRadius: spacing.md, backgroundColor: colors.error[100] }}>
+              <Text style={{ color: colors.error[800], fontWeight: typography.fontWeight.semibold }}>Try again</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Impulses List - Grouped by Date */}
       <SectionList
         sections={groupedData}
         keyExtractor={(item) => item.id}
         renderItem={({ item: impulse }) => (
-          <HistoryItem
-            impulse={impulse}
-            onPress={() => handleItemPress(impulse)}
-          />
+          <Animated.View entering={FadeInUp.springify().damping(14)} exiting={FadeOutDown}>
+            <HistoryItem
+              impulse={impulse}
+              onPress={() => handleItemPress(impulse)}
+            />
+          </Animated.View>
         )}
         renderSectionHeader={({ section: { title } }) => (
           <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
@@ -207,15 +224,48 @@ export default function HistoryScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📜</Text>
-            <Text style={styles.emptyTitle}>No impulses found</Text>
-            <Text style={styles.emptyText}>
-              {filter === 'ALL'
-                ? 'Start logging impulses to see your history here.'
-                : `No ${filter.toLowerCase()} impulses yet.`}
-            </Text>
-          </View>
+          loading ? (
+            <View style={[styles.content, { gap: spacing.sm }]}>
+              {/* Skeleton rows */}
+              {/* @ts-ignore */}
+              <View style={{ padding: spacing.base, borderRadius: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                {/* @ts-ignore */}
+                <View style={{ height: 12, width: 100, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
+                {/* @ts-ignore */}
+                <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
+                {/* @ts-ignore */}
+                <View style={{ height: 14, width: '70%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
+              </View>
+              {/* @ts-ignore */}
+              <View style={{ padding: spacing.base, borderRadius: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                {/* @ts-ignore */}
+                <View style={{ height: 12, width: 120, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
+                {/* @ts-ignore */}
+                <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
+                {/* @ts-ignore */}
+                <View style={{ height: 14, width: '60%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
+              </View>
+              {/* @ts-ignore */}
+              <View style={{ padding: spacing.base, borderRadius: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                {/* @ts-ignore */}
+                <View style={{ height: 12, width: 90, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
+                {/* @ts-ignore */}
+                <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
+                {/* @ts-ignore */}
+                <View style={{ height: 14, width: '80%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="time-outline" size={56} color={colors.textLight} accessibilityElementsHidden importantForAccessibility="no" />
+              <Text style={styles.emptyTitle}>No impulses found</Text>
+              <Text style={styles.emptyText}>
+                {filter === 'ALL'
+                  ? 'Start logging impulses to see your history here.'
+                  : `No ${filter.toLowerCase()} impulses yet.`}
+              </Text>
+            </View>
+          )
         }
         stickySectionHeadersEnabled={false}
         initialNumToRender={10}

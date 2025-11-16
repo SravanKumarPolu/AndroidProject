@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Impulse } from '@/types/impulse';
 import { Card } from './ui/Card';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -126,25 +127,35 @@ export function ImpulseCard({ impulse, onPress, showCountdown = true }: ImpulseC
 
         {impulse.status === 'CANCELLED' && impulse.skippedFeeling && (
           <View style={styles.feelingContainer}>
-            <Text style={styles.feelingLabel}>
-              Feeling: {impulse.skippedFeeling === 'RELIEVED' ? '😌 Relieved' :
-                       impulse.skippedFeeling === 'STILL_CRAVING' ? '😩 Still craving' :
-                       '😐 Neutral'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              {impulse.skippedFeeling === 'RELIEVED' && <Ionicons name="happy-outline" size={16} color={colors.success[600]} />}
+              {impulse.skippedFeeling === 'STILL_CRAVING' && <Ionicons name="alert-circle-outline" size={16} color={colors.warning[600]} />}
+              {impulse.skippedFeeling === 'NEUTRAL' && <Ionicons name="remove-circle-outline" size={16} color={colors.textLight} />}
+              <Text style={styles.feelingLabel}>
+                Feeling: {impulse.skippedFeeling === 'RELIEVED' ? 'Relieved' :
+                         impulse.skippedFeeling === 'STILL_CRAVING' ? 'Still craving' :
+                         'Neutral'}
+              </Text>
+            </View>
           </View>
         )}
 
         {impulse.status === 'EXECUTED' && impulse.finalFeeling && (
           <View style={styles.feelingContainer}>
-            <Text style={[
-              styles.feelingLabel,
-              { color: colors.textLight },
-              impulse.finalFeeling === 'REGRET' && { color: colors.error[600] },
-            ]}>
-              {impulse.finalFeeling === 'REGRET' ? '😔 Regretted' :
-               impulse.finalFeeling === 'WORTH_IT' ? '😊 Worth it' :
-               '😐 Neutral'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              {impulse.finalFeeling === 'REGRET' && <Ionicons name="sad-outline" size={16} color={colors.error[600]} />}
+              {impulse.finalFeeling === 'WORTH_IT' && <Ionicons name="happy-outline" size={16} color={colors.success[600]} />}
+              {impulse.finalFeeling === 'NEUTRAL' && <Ionicons name="remove-circle-outline" size={16} color={colors.textLight} />}
+              <Text style={[
+                styles.feelingLabel,
+                { color: colors.textLight },
+                impulse.finalFeeling === 'REGRET' && { color: colors.error[600] },
+              ]}>
+                {impulse.finalFeeling === 'REGRET' ? 'Regretted' :
+                 impulse.finalFeeling === 'WORTH_IT' ? 'Worth it' :
+                 'Neutral'}
+              </Text>
+            </View>
           </View>
         )}
       </Card>

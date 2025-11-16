@@ -23,6 +23,7 @@ import { onboarding } from '@/utils/onboarding';
 import { useGoals } from '@/hooks/useGoals';
 import { formatCurrency } from '@/utils/currency';
 import { Input } from '@/components/ui/Input';
+import { promptRatingIfAppropriate } from '@/services/rating';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -86,6 +87,12 @@ export default function OnboardingScreen() {
       }
 
       await onboarding.markComplete();
+      // Soft nudge: ask for review at a happy moment (system throttles display)
+      try {
+        await promptRatingIfAppropriate();
+      } catch (e) {
+        // No-op; rating prompt availability varies by platform/timing
+      }
       
       setRequestingPermissions(true);
       try {

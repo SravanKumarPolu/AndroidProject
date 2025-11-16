@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import Animated, { FadeInDown, withSequence, withSpring, useSharedValue, useAnimatedStyle, withDelay } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from './ui/Card';
 import { colors } from '@/constants/colors';
@@ -44,13 +45,27 @@ export function WeeklyReviewCard({ review, onPress }: WeeklyReviewCardProps) {
           <Text style={styles.date}>
             {formatDate(review.weekStart)} - {formatDate(review.weekEnd)}
           </Text>
-          <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={styles.shareButton}
+            accessibilityRole="button"
+            accessibilityLabel="Share weekly review"
+            accessibilityHint="Opens system share sheet with your weekly summary"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Ionicons name="share-outline" size={18} color={colors.primary[600]} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.statsRow}>
+        {/* Narrative summary */}
+        {review.narrative && (
+          <View style={styles.narrativeRow}>
+            <Ionicons name="sparkles-outline" size={16} color={colors.accent[600]} />
+            <Text style={styles.narrativeText}>{review.narrative}</Text>
+          </View>
+        )}
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{formatCurrency(review.moneySaved)}</Text>
           <Text style={styles.statLabel}>Saved</Text>
@@ -74,19 +89,30 @@ export function WeeklyReviewCard({ review, onPress }: WeeklyReviewCardProps) {
       )}
 
       {review.moneySaved > 0 && (
-        <View style={styles.celebration}>
+        <Animated.View
+          entering={FadeInDown.springify().damping(16)}
+          style={styles.celebration}
+          accessibilityRole="text"
+          accessibilityLabel={`You saved ${formatCurrency(review.moneySaved)} this week`}
+        >
           <Ionicons name="trophy" size={20} color={colors.success[700]} />
           <Text style={styles.celebrationText}>
             You saved {formatCurrency(review.moneySaved)} this week!
           </Text>
-        </View>
+        </Animated.View>
       )}
     </View>
   );
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Open weekly report"
+        accessibilityHint="Shows detailed weekly reports"
+      >
         <Card variant="elevated" style={styles.card}>
           {content}
         </Card>
@@ -107,6 +133,18 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.base,
+  },
+  narrativeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.base,
+  },
+  narrativeText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text,
+    textAlign: 'center',
   },
   titleRow: {
     flexDirection: 'row',

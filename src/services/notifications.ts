@@ -103,6 +103,21 @@ export async function scheduleRegretCheckNotification(impulse: Impulse): Promise
       },
     });
 
+    // Also schedule one gentle re-prompt 24h later if user hasn't responded yet
+    // (best-effort; if user already responded, the screen will simply show status)
+    const reminderDelay = delay + 24 * 60 * 60 * 1000;
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '👀 Quick check-in',
+        body: `About ${impulse.title}. Was it worth it?`,
+        data: { impulseId: impulse.id, type: 'regret_check' },
+        sound: false,
+      },
+      trigger: {
+        seconds: Math.floor(reminderDelay / 1000),
+      },
+    });
+
     return notificationId;
   } catch (error) {
     logger.error('Error scheduling regret check', error instanceof Error ? error : new Error(String(error)));

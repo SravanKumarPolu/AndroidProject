@@ -44,6 +44,9 @@ export interface Impulse {
   regretRating?: number; // 1-5 scale (1 = no regret, 5 = high regret)
   skippedFeeling?: SkippedFeeling;
   notes?: string;
+  // Regret prompt UX
+  regretSkipReason?: string; // optional reason when user skips the regret check
+  regretPromptDismissedAt?: number; // timestamp when user skipped/dismissed regret prompt
   sourceApp?: string; // e.g., "Swiggy", "Amazon" (optional)
   photoUri?: string; // Local file URI for attached photo
   location?: {

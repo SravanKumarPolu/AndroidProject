@@ -20,12 +20,13 @@ import { formatCurrency } from '@/utils/currency';
 import { formatDateTime, isTimePast } from '@/utils/date';
 import { getFunEquivalents, formatFunEquivalent } from '@/utils/funEquivalents';
 import { Impulse, SkippedFeeling, FinalFeeling } from '@/types/impulse';
+import { trackPositiveAction, promptRatingIfAppropriate } from '@/services/rating';
 
 export default function ReviewImpulseScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { impulses, cancelImpulse, executeImpulse, markRegret } = useImpulses();
+  const { impulses, cancelImpulse, executeImpulse, markRegret, updateImpulse } = useImpulses();
   const { isStrictMode } = useSettings();
   const { showError, showSuccess } = useToast();
   
@@ -34,8 +35,12 @@ export default function ReviewImpulseScreen() {
   const [showFeeling, setShowFeeling] = useState(false);
   const [showReason, setShowReason] = useState(false);
   const [skipReason, setSkipReason] = useState('');
+  const [showExecuteReason, setShowExecuteReason] = useState(false);
+  const [executeReason, setExecuteReason] = useState('');
   const [selectedFeeling, setSelectedFeeling] = useState<SkippedFeeling | FinalFeeling | null>(null);
   const [selectedRegretRating, setSelectedRegretRating] = useState<number | undefined>(undefined);
+  const [skipForNowVisible, setSkipForNowVisible] = useState(false);
+  const [skipForNowReason, setSkipForNowReason] = useState('');
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [savedAmount, setSavedAmount] = useState(0);
@@ -78,6 +83,12 @@ export default function ReviewImpulseScreen() {
       const amount = impulse.price || 0;
       await cancelImpulse(impulse.id, feeling);
       
+      // Positive milestone → rating nudge
+      try {
+        await trackPositiveAction();
+        await promptRatingIfAppropriate();
+      } catch {}
+
       // Show celebration if there's a price
       if (amount > 0) {
         setSavedAmount(amount);
@@ -213,6 +224,39 @@ export default function ReviewImpulseScreen() {
               style={styles.button}
               disabled={!selectedRegretRating}
             />
+            <Button
+              title={skipForNowVisible ? 'Skip for now — Save' : 'Skip for now'}
+              onPress={async () => {
+                if (!skipForNowVisible) {
+                  setSkipForNowVisible(true);
+                  return;
+                }
+                setLoading(true);
+                try {
+                  await updateImpulse(impulse.id, {
+                    regretSkipReason: skipForNowReason || undefined,
+                    regretPromptDismissedAt: Date.now(),
+                  });
+                  showSuccess('No problem — we’ll remind you later.');
+                  router.back();
+                } catch (e) {
+                  showError('Couldn’t skip right now. Please try again.');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              variant="outline"
+              size="md"
+              fullWidth
+            />
+            {skipForNowVisible && (
+              <Input
+                placeholder="Reason (optional)"
+                value={skipForNowReason}
+                onChangeText={setSkipForNowReason}
+                style={styles.reasonInput}
+              />
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -328,13 +372,19 @@ export default function ReviewImpulseScreen() {
             />
             <Button
               title="Still buying"
-              onPress={handleExecute}
+              onPress={() => {
+                if (isStrictMode && impulse && !isTimePast(impulse.reviewAt)) {
+                  setShowExecuteReason(true);
+                } else {
+                  handleExecute();
+                }
+              }}
               variant="outline"
               size="lg"
               fullWidth
               loading={loading}
               style={styles.button}
-              disabled={impulse && !isTimePast(impulse.reviewAt)}
+              disabled={!isStrictMode && impulse && !isTimePast(impulse.reviewAt)}
             />
           </View>
         ) : showReason ? (
@@ -372,6 +422,55 @@ export default function ReviewImpulseScreen() {
               onPress={() => {
                 setShowReason(false);
                 setSkipReason('');
+              }}
+              variant="ghost"
+              size="md"
+              fullWidth
+            />
+          </View>
+        ) : showExecuteReason ? (
+          <View style={styles.buttons}>
+            <Text style={styles.reasonQuestion}>
+              {isStrictMode ? 'Strict Mode: Bypass Cool-down' : ''}
+            </Text>
+            <Text style={styles.reasonHint}>
+              Share your reason to buy before the timer ends. Reflect on past regrets below.
+            </Text>
+            {pastRegrets.length > 0 && (
+              <Card variant="outlined" style={styles.warningCard}>
+                <Text style={styles.warningTitle}>⚠️ Past Regrets</Text>
+                <Text style={styles.warningText}>
+                  You've regretted {pastRegrets.length} similar {CATEGORY_LABELS[impulse.category].toLowerCase()} purchase{pastRegrets.length > 1 ? 's' : ''} before.
+                </Text>
+              </Card>
+            )}
+            <Input
+              placeholder="e.g., Urgent need, discount ends, must-have for work..."
+              value={executeReason}
+              onChangeText={setExecuteReason}
+              multiline
+              numberOfLines={3}
+              style={styles.reasonInput}
+            />
+            <Button
+              title="Proceed to buy"
+              onPress={() => {
+                if (executeReason.trim()) {
+                  setShowExecuteReason(false);
+                  handleExecute();
+                }
+              }}
+              variant="outline"
+              size="lg"
+              fullWidth
+              disabled={!executeReason.trim()}
+              style={styles.button}
+            />
+            <Button
+              title="Cancel"
+              onPress={() => {
+                setShowExecuteReason(false);
+                setExecuteReason('');
               }}
               variant="ghost"
               size="md"

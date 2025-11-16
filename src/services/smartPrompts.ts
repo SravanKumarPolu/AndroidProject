@@ -206,6 +206,36 @@ export async function scheduleDailySmartPrompts(impulses: Impulse[]): Promise<vo
       logger.error('Error scheduling daily reminder', error instanceof Error ? error : new Error(String(error)));
     }
   }
+
+  // Schedule a lightweight daily "Quick Add" nudge to reduce pre-purchase logging friction
+  // This opens the quick-add screen directly on tap.
+  {
+    const now = new Date();
+    const quickAddTime = new Date();
+    // Prefer first weak hour if available; otherwise fallback to 6 PM
+    const quickAddHour = context.weakHours.length > 0 ? context.weakHours[0] : 18;
+    quickAddTime.setHours(quickAddHour, 0, 0, 0);
+    if (quickAddTime <= now) {
+      quickAddTime.setDate(quickAddTime.getDate() + 1);
+    }
+    const delay = quickAddTime.getTime() - now.getTime();
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '⚡ Log before you buy',
+          body: 'Open Quick Add to lock the impulse in under 30 seconds.',
+          data: { type: 'quick_add' },
+          sound: false,
+        },
+        trigger: {
+          seconds: Math.max(1, Math.floor(delay / 1000)),
+          repeats: true,
+        },
+      });
+    } catch (error) {
+      logger.error('Error scheduling quick-add nudge', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
 }
 
 /**

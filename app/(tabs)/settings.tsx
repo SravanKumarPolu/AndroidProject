@@ -23,6 +23,7 @@ import { storage } from '@/services/storage';
 import { cancelAllNotifications } from '@/services/notifications';
 import { photos } from '@/services/photos';
 import { useToast } from '@/contexts/ToastContext';
+import { promptRatingIfAppropriate } from '@/services/rating';
 
 export default function SettingsScreen() {
   const { settings, isStrictMode, updateStrictMode, loading } = useSettings();
@@ -575,6 +576,50 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        {/* Premium (Monetization Prep) */}
+        <Card variant="elevated" style={styles.card}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="diamond-outline" size={24} color={colors.primary[600]} />
+              </View>
+              <View style={styles.settingText}>
+                <Text style={[styles.settingTitle, { color: colors.text }]}>Premium</Text>
+                <Text style={[styles.settingDescription, { color: colors.textLight }]}>
+                  Status: Free plan
+                </Text>
+              </View>
+            </View>
+          </View>
+          <Button
+            title="Upgrade to Premium"
+            onPress={async () => {
+              Alert.alert(
+                'Coming Soon',
+                'Premium features are on the way. Want early access? Tap “Notify Me”.',
+                [
+                  { text: 'Not now', style: 'cancel' },
+                  {
+                    text: 'Notify Me',
+                    onPress: async () => {
+                      const subject = encodeURIComponent('ImpulseVault Premium – Early Access');
+                      const body = encodeURIComponent(`Hi,\n\nI’d like early access to Premium.\n\n—\nApp v${appConfig.version}`);
+                      const mailto = `mailto:${appConfig.supportEmail}?subject=${subject}&body=${body}`;
+                      const supported = await Linking.canOpenURL(mailto);
+                      if (supported) {
+                        await Linking.openURL(mailto);
+                      }
+                    },
+                  },
+                ]
+              );
+            }}
+            variant="primary"
+            size="md"
+            fullWidth
+          />
+        </Card>
+
         {/* Legal & Support */}
         <Card variant="elevated" style={styles.card}>
           <View style={styles.infoSection}>
@@ -587,6 +632,57 @@ export default function SettingsScreen() {
               <View style={styles.linkLeft}>
                 <Ionicons name="document-text-outline" size={20} color={colors.primary[600]} />
                 <Text style={[styles.linkText, dynamicStyles.linkText]}>Privacy Policy</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.linkRow, dynamicStyles.linkRow]}
+              onPress={async () => {
+                try {
+                  await promptRatingIfAppropriate();
+                } catch (e) {
+                  // If native prompt not available, fall back to store listing
+                  const url = appConfig.playStoreUrl;
+                  if (url) {
+                    const canOpen = await Linking.canOpenURL(url);
+                    if (canOpen) {
+                      await Linking.openURL(url);
+                    }
+                  }
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.linkLeft}>
+                <Ionicons name="star-outline" size={20} color={colors.primary[600]} />
+                <Text style={[styles.linkText, dynamicStyles.linkText]}>Rate the App</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.linkRow, dynamicStyles.linkRow]}
+              onPress={async () => {
+                const subject = encodeURIComponent('ImpulseVault Feedback');
+                const body = encodeURIComponent(
+                  `Hi team,\n\nFeedback:\n\n\n—\nApp v${appConfig.version}\n`
+                );
+                const mailto = `mailto:${appConfig.supportEmail}?subject=${subject}&body=${body}`;
+                const supported = await Linking.canOpenURL(mailto);
+                if (supported) {
+                  await Linking.openURL(mailto);
+                } else {
+                  Alert.alert(
+                    'Email not configured',
+                    `Please email us at ${appConfig.supportEmail}`,
+                    [{ text: 'OK' }]
+                  );
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.linkLeft}>
+                <Ionicons name="mail-outline" size={20} color={colors.primary[600]} />
+                <Text style={[styles.linkText, dynamicStyles.linkText]}>Send Feedback</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
             </TouchableOpacity>

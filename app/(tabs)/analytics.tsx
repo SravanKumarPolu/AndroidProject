@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useImpulses } from '@/hooks/useImpulses';
@@ -23,9 +23,18 @@ import { CATEGORY_LABELS } from '@/constants/categories';
 type ChartType = 'spending' | 'category' | 'regret';
 
 export default function AnalyticsScreen() {
-  const { impulses } = useImpulses();
+  const { impulses, loadImpulses } = useImpulses();
   const { stats, categoryStats } = useStats(impulses);
   const [selectedChart, setSelectedChart] = useState<ChartType>('spending');
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadImpulses();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadImpulses]);
   
   // Advanced analytics
   const monthlyTrends = useMemo(() => calculateMonthlyTrends(impulses, 6), [impulses]);
@@ -47,6 +56,9 @@ export default function AnalyticsScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Header */}
         <View style={styles.header}>

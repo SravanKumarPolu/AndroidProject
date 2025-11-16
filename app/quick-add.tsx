@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useImpulses } from '@/hooks/useImpulses';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +20,7 @@ import { safeValidateCreateImpulse } from '@/utils/validation';
  */
 export default function QuickAddScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ title?: string; price?: string; category?: string }>();
   const { createImpulse } = useImpulses();
   const { showError, showSuccess } = useToast();
   
@@ -27,6 +28,22 @@ export default function QuickAddScreen() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState<ImpulseCategory>('FOOD');
   const [loading, setLoading] = useState(false);
+
+  // Prefill fields from deep link params (if provided)
+  useEffect(() => {
+    if (typeof params.title === 'string' && params.title.trim().length > 0) {
+      setTitle(params.title.trim());
+    }
+    if (typeof params.price === 'string' && params.price.trim().length > 0) {
+      setPrice(params.price.trim());
+    }
+    if (typeof params.category === 'string') {
+      const upper = params.category.toUpperCase();
+      if ((CATEGORIES as readonly string[]).includes(upper)) {
+        setCategory(upper as ImpulseCategory);
+      }
+    }
+  }, [params.title, params.price, params.category]);
 
   const handleSubmit = async () => {
     if (!title.trim()) {

@@ -13,6 +13,7 @@ export interface WeeklyReview {
   moneyRegretted: number;
   regretRate: number;
   streak: number;
+  narrative?: string;
 }
 
 /**
@@ -55,6 +56,38 @@ export function getWeeklyReview(impulses: Impulse[], weekStart: number): WeeklyR
     }
   }
 
+  // Narrative summary
+  let narrative: string | undefined;
+  try {
+    const { getWeakHours, getTimeOfDayLabel } = require('./timePatterns');
+    const { CATEGORY_LABELS } = require('@/constants/categories');
+    const { highFrequency } = getWeakHours(weekImpulses);
+    const topHour = highFrequency.length > 0 ? highFrequency[0].hour : undefined;
+    const timeLabel = typeof topHour === 'number' ? getTimeOfDayLabel(topHour) : undefined;
+    // Top cancelled category
+    const cancelledByCategory = new Map<string, number>();
+    cancelled.forEach(i => {
+      const key = i.category;
+      cancelledByCategory.set(key, (cancelledByCategory.get(key) || 0) + (i.price || 0));
+    });
+    const topCancelled = Array.from(cancelledByCategory.entries())
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const categoryLabel = topCancelled ? CATEGORY_LABELS[topCancelled] : undefined;
+    if (moneySaved > 0) {
+      if (timeLabel === 'Night' && topCancelled === 'FOOD') {
+        narrative = `Saved ${formatCurrency(moneySaved)} from late-night orders`;
+      } else if (timeLabel) {
+        narrative = `Saved ${formatCurrency(moneySaved)} during ${timeLabel.toLowerCase()} urges`;
+      } else if (categoryLabel) {
+        narrative = `Saved ${formatCurrency(moneySaved)} on ${categoryLabel.toLowerCase()}`;
+      } else {
+        narrative = `Saved ${formatCurrency(moneySaved)} by skipping ${cancelled.length} impulse${cancelled.length !== 1 ? 's' : ''}`;
+      }
+    }
+  } catch {
+    // Best-effort narrative; ignore errors
+  }
+
   return {
     weekStart,
     weekEnd,
@@ -66,6 +99,7 @@ export function getWeeklyReview(impulses: Impulse[], weekStart: number): WeeklyR
     moneyRegretted,
     regretRate: Math.round(regretRate * 10) / 10,
     streak,
+    narrative,
   };
 }
 
