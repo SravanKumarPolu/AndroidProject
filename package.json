@@ -49,7 +49,7 @@
     "expo-file-system": "~17.0.1",
     "expo-image-manipulator": "^14.0.7",
     "expo-image-picker": "^17.0.8",
-    "expo-linking": "~6.3.0",
+    "expo-linking": "~8.0.9",
     "expo-location": "^19.0.7",
     "expo-notifications": "~0.28.0",
     "expo-router": "~3.5.0",
