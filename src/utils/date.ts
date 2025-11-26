@@ -58,3 +58,11 @@ export const addDays = (timestamp: number, days: number): number => {
   return timestamp + days * 24 * 60 * 60 * 1000;
 };
 
+export const isToday = (timestamp: number): boolean => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return today.getTime() === date.getTime();
+};
+

@@ -74,6 +74,20 @@ export function createWeeklySummaryShareContent(
 }
 
 /**
+ * Share daily summary
+ */
+export function createDailySummaryShareContent(
+  moneySaved: number,
+  impulsesAvoided: number,
+  totalLogged: number
+): ShareContent {
+  return {
+    title: 'Daily Summary ☀️',
+    message: `Today I saved ${formatCurrency(moneySaved)} by avoiding ${impulsesAvoided} impulsive purchase${impulsesAvoided !== 1 ? 's' : ''}!${totalLogged > impulsesAvoided ? `\n\n📝 ${totalLogged} impulse${totalLogged !== 1 ? 's' : ''} logged today` : ''}\n\nTrack your spending with ImpulseVault! 💰`,
+  };
+}
+
+/**
  * Share impulse (when cancelled)
  */
 export function createImpulseShareContent(impulse: Impulse): ShareContent {

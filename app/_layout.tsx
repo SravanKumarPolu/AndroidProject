@@ -193,6 +193,9 @@ function RootLayoutContent() {
             <Stack.Screen name="achievements" options={{ presentation: 'card' }} />
             <Stack.Screen name="patterns" options={{ presentation: 'card' }} />
             <Stack.Screen name="weekly-reports" options={{ presentation: 'card' }} />
+            <Stack.Screen name="monthly-reports" options={{ presentation: 'card' }} />
+            <Stack.Screen name="daily-summary" options={{ presentation: 'card' }} />
+            <Stack.Screen name="regret-tracker" options={{ presentation: 'card' }} />
             <Stack.Screen name="budget" options={{ presentation: 'card' }} />
           </Stack>
           <Toast

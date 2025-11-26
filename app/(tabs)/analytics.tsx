@@ -20,6 +20,7 @@ import {
 } from '@/utils/advancedAnalytics';
 import { formatCurrency } from '@/utils/currency';
 import { CATEGORY_LABELS } from '@/constants/categories';
+import { useRouter } from 'expo-router';
 
 type ChartType = 'results' | 'spending' | 'category' | 'regret';
 
@@ -178,6 +179,27 @@ export default function AnalyticsScreen() {
                 </View>
               </View>
             ))}
+          </Card>
+        )}
+
+        {/* Regret Tracker Link */}
+        {impulses.filter(i => i.finalFeeling === 'REGRET' || (i.regretRating !== undefined && i.regretRating >= 3)).length > 0 && (
+          <Card variant="elevated" style={styles.insightsCard}>
+            <TouchableOpacity
+              onPress={() => router.push('/regret-tracker')}
+              style={styles.regretTrackerLink}
+            >
+              <View style={styles.regretTrackerLeft}>
+                <Ionicons name="sad-outline" size={24} color={colors.error[600]} />
+                <View style={styles.regretTrackerText}>
+                  <Text style={styles.regretTrackerTitle}>Regret Tracker</Text>
+                  <Text style={styles.regretTrackerSubtitle}>
+                    View all your regretted purchases and learn from them
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </TouchableOpacity>
           </Card>
         )}
 
@@ -425,6 +447,32 @@ const styles = StyleSheet.create({
   categoryTrendChange: {
     fontSize: typography.fontSize.sm,
     color: colors.textLight,
+  },
+  regretTrackerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.sm,
+  },
+  regretTrackerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.base,
+  },
+  regretTrackerText: {
+    flex: 1,
+  },
+  regretTrackerTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text,
+    marginBottom: spacing.xs / 2,
+  },
+  regretTrackerSubtitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textLight,
+    lineHeight: typography.lineHeight.relaxed * typography.fontSize.sm,
   },
 });
 

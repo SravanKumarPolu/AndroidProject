@@ -14,6 +14,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { StatsCard } from '@/components/StatsCard';
 import { ImpulseCard } from '@/components/ImpulseCard';
 import { WeeklyReviewCard } from '@/components/WeeklyReviewCard';
+import { DailySummaryCard } from '@/components/DailySummaryCard';
+import { RegretTrackerCard } from '@/components/RegretTrackerCard';
 import { WeakCategoriesCard } from '@/components/WeakCategoriesCard';
 import { WeakHoursCard } from '@/components/WeakHoursCard';
 import { GoalsCard } from '@/components/GoalsCard';
@@ -28,6 +30,7 @@ import { ImpulseScoreCard } from '@/components/ImpulseScoreCard';
 import { TerminalBackground } from '@/components/TerminalBackground';
 import { TerminalGlow } from '@/components/TerminalGlow';
 import { getLastWeekReview } from '@/utils/weeklyReview';
+import { getTodaySummary } from '@/utils/dailySummary';
 import { getCurrentMonthStats } from '@/utils/monthlyStats';
 import { getWorstMoodTrigger } from '@/utils/moodTrigger';
 import { getMostDangerousCategory } from '@/utils/categoryAnalysis';
@@ -230,6 +233,7 @@ export default function HomeScreen() {
           <MonthlyDashboardCard 
             monthlyStats={monthlyStats} 
             goal={monthlyGoal}
+            onPress={() => router.push('/monthly-reports')}
           />
         </TerminalGlow>
 
@@ -276,6 +280,15 @@ export default function HomeScreen() {
             maxDisplay={2}
           />
         )}
+
+        {/* Daily Summary */}
+        <DailySummaryCard 
+          summary={getTodaySummary(impulses)}
+          onPress={() => router.push('/daily-summary')}
+        />
+
+        {/* Regret Tracker */}
+        <RegretTrackerCard />
 
         {/* Weekly Review */}
         {impulses.length > 0 && (

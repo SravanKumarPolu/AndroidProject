@@ -90,6 +90,25 @@ export default function WeeklyReportsScreen() {
           </View>
         )}
 
+        {/* Monthly Reports Link */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            onPress={() => router.push('/monthly-reports')}
+            style={styles.monthlyLink}
+          >
+            <View style={styles.monthlyLinkLeft}>
+              <Ionicons name="calendar-outline" size={24} color={colors.primary[600]} />
+              <View style={styles.monthlyLinkText}>
+                <Text style={[styles.monthlyLinkTitle, { color: colors.text }]}>Monthly Reports</Text>
+                <Text style={[styles.monthlyLinkSubtitle, { color: colors.textLight }]}>
+                  View detailed monthly statistics and trends
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+        </View>
+
         {/* Historical Weeks */}
         {weeklyReviews.length > 0 && (
           <View style={styles.section}>
@@ -172,6 +191,32 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     textAlign: 'center',
     lineHeight: typography.lineHeight.relaxed * typography.fontSize.base,
+  },
+  monthlyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.base,
+    borderRadius: spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  monthlyLinkLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.base,
+  },
+  monthlyLinkText: {
+    flex: 1,
+  },
+  monthlyLinkTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    marginBottom: spacing.xs / 2,
+  },
+  monthlyLinkSubtitle: {
+    fontSize: typography.fontSize.sm,
+    lineHeight: typography.lineHeight.relaxed * typography.fontSize.sm,
   },
 });
 

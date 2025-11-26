@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from './ui/Card';
 import { useTheme } from '@/contexts/ThemeContext';
 import { typography } from '@/constants/typography';
@@ -12,9 +12,10 @@ import { getTerminalTextStyle } from '@/utils/terminalTypography';
 interface MonthlyDashboardCardProps {
   monthlyStats: MonthlyStats;
   goal?: SavingsGoal;
+  onPress?: () => void;
 }
 
-export function MonthlyDashboardCard({ monthlyStats, goal }: MonthlyDashboardCardProps) {
+export function MonthlyDashboardCard({ monthlyStats, goal, onPress }: MonthlyDashboardCardProps) {
   const { colors, theme } = useTheme();
   const isTerminal = theme === 'terminal';
   const terminalStyle = getTerminalTextStyle(isTerminal);
@@ -24,7 +25,7 @@ export function MonthlyDashboardCard({ monthlyStats, goal }: MonthlyDashboardCar
     ? Math.min(100, (monthlyStats.totalSaved / goalAmount) * 100)
     : 0;
 
-  return (
+  const content = (
     <Card variant="elevated" style={styles.card}>
       <Text style={[styles.savedAmount, terminalStyle, { color: colors.success[700] || colors.text }]}>
         Saved this month: {formatCurrency(monthlyStats.totalSaved)}
@@ -49,6 +50,16 @@ export function MonthlyDashboardCard({ monthlyStats, goal }: MonthlyDashboardCar
       )}
     </Card>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
