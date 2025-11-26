@@ -45,6 +45,11 @@ export function ImpulseCard({ impulse, onClick, className = '' }: ImpulseCardPro
           <div className="flex items-center gap-2 flex-wrap">
             <CategoryPill category={impulse.category} size="sm" />
             <span className="font-bold text-primary text-lg">{formatCurrency(impulse.price)}</span>
+            {impulse.urgeStrength && (
+              <span className="badge badge-sm badge-warning">
+                Urge: {impulse.urgeStrength}/10
+              </span>
+            )}
           </div>
         </div>
         <div className={`flex items-center gap-1 ${config.color} ml-2`}>
@@ -78,9 +83,20 @@ export function ImpulseCard({ impulse, onClick, className = '' }: ImpulseCardPro
         )}
       </div>
 
+      {/* Reason */}
+      {impulse.reason && (
+        <div className="pt-3 border-t border-base-300/30">
+          <p className="text-xs text-base-content/60 mb-1">Why you wanted this:</p>
+          <p className="text-sm text-base-content/80 italic line-clamp-2">
+            "{impulse.reason}"
+          </p>
+        </div>
+      )}
+
       {/* Notes */}
       {impulse.notesAfterPurchase && (
         <div className="pt-3 border-t border-base-300/30">
+          <p className="text-xs text-base-content/60 mb-1">After purchase:</p>
           <p className="text-sm text-base-content/70 italic line-clamp-2">
             "{impulse.notesAfterPurchase}"
           </p>

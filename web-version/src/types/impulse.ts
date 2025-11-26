@@ -20,6 +20,8 @@ export interface Impulse {
   category: ImpulseCategory;
   reason?: string;
   urgency: UrgencyLevel;
+  urgeStrength?: number; // 1-10 scale (Revolut-style)
+  urgeStrengthAfterCooldown?: number; // Urge strength after cooldown period (captured in Decision screen)
   createdAt: number;
   cooldownEndsAt: number;
   status: ImpulseStatus;
@@ -31,21 +33,29 @@ export interface Impulse {
   regretCheckAt?: number | null;
   regretScore?: number | null;
   notesAfterPurchase?: string | null;
+  isInfluenced?: boolean; // Whether the impulse was influenced by friends/social media
 }
 
 export interface AppSettings {
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'system';
   notifications: boolean;
   defaultCooldownHours: number;
   // Notification nudges
   reminderToLog: boolean;
   weeklyReportSummary: boolean;
   regretCheckReminders: boolean;
+  nightlyReminder?: boolean;
+  reminderTime?: string; // Time in HH:mm format
+  shoppingAppPrompt?: boolean; // Future feature
   // Cloud Sync
   cloudSyncEnabled: boolean;
   cloudSyncUrl?: string;
   cloudSyncKey?: string;
   // Smart Alerts
   smartAlertsEnabled: boolean;
+  // Appearance
+  accentColor?: 'blue' | 'purple' | 'teal';
+  // Category Limits
+  categoryLimits?: Record<ImpulseCategory, { weekly?: number; monthly?: number }>;
 }
 

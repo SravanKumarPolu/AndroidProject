@@ -20,8 +20,9 @@ export function Card({ children, className = '', onClick }: CardProps) {
   if (onClick) {
     return (
       <motion.div
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ y: -2, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
         whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
         onClick={onClick}
       >
         {content}

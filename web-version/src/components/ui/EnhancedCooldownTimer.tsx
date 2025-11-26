@@ -137,7 +137,7 @@ export function EnhancedCooldownTimer({
             animate={{
               strokeDashoffset: 2 * Math.PI * ((size - 24) / 2) * remainingProgress,
             }}
-            transition={{ duration: 0.5, ease: 'linear' }}
+            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
           />
         )}
 

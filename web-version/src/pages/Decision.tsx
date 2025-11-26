@@ -1,24 +1,33 @@
-import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useImpulseStore } from '@/store/impulseStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { GlassButton } from '@/components/ui/GlassButton';
 import { CategoryPill } from '@/components/ui/CategoryPill';
+import { UrgeStrengthSlider } from '@/components/ui/UrgeStrengthSlider';
 import { Confetti } from '@/components/Confetti';
 import { formatCurrency } from '@/utils/format';
 import { predictRegret } from '@/utils/regretPrediction';
-import { CheckCircle, XCircle, Clock, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { hapticSuccess, hapticWarning } from '@/utils/haptics';
+import { getUserStats } from '@/utils/gamification';
+import { CheckCircle, XCircle, Clock, ArrowLeft, AlertTriangle, Trophy, Sparkles } from 'lucide-react';
 
 export function Decision() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { impulses, makeDecision } = useImpulseStore();
+  const { impulses, makeDecision, updateImpulse } = useImpulseStore();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showSkipMessage, setShowSkipMessage] = useState(false);
+  const [showBuyMessage, setShowBuyMessage] = useState(false);
+  const [urgeStrengthNow, setUrgeStrengthNow] = useState<number | null>(null);
 
-  // Get impulse from URL param or find first pending decision
-  const impulse = id
-    ? impulses.find((i) => i.id === id)
+  // Get impulse from URL param, query param, or find first pending decision
+  const impulseId = id || searchParams.get('id');
+  const impulse = impulseId
+    ? impulses.find((i) => i.id === impulseId)
     : impulses.find((i) => i.status === 'decision');
 
   // Calculate regret prediction
@@ -31,17 +40,45 @@ export function Decision() {
     if (!impulse) return;
 
     try {
+      // Always save the after-cooldown urge strength (even if unchanged, to have a record)
+      if (urgeStrengthNow !== null) {
+        await updateImpulse(impulse.id, {
+          urgeStrengthAfterCooldown: urgeStrengthNow,
+        });
+      }
+      
+      // Make the decision (this will update status, decisionAtEnd, etc.)
       await makeDecision(impulse.id, decision);
     } catch (error) {
       console.error('Failed to make decision:', error);
       return;
     }
 
-    // Show confetti if skipping
+    // Show confetti and gamification if skipping
     if (decision === 'skip') {
+      hapticSuccess();
       setShowConfetti(true);
+      setShowSkipMessage(true);
+      
+      // Calculate XP and savings
+      const userStats = getUserStats(impulses);
+      const xpGained = 20; // Base XP for resisting
+      
+      // Trigger XP bar animation by updating stats
+      // The XP bar will animate when user navigates to Progress page
+      
       setTimeout(() => {
         setShowConfetti(false);
+        setTimeout(() => {
+          setShowSkipMessage(false);
+          navigate('/progress'); // Navigate to progress to see XP bar animation
+        }, 3000);
+      }, 2000);
+    } else if (decision === 'buy') {
+      hapticWarning();
+      setShowBuyMessage(true);
+      setTimeout(() => {
+        setShowBuyMessage(false);
         navigate('/');
       }, 2000);
     } else {
@@ -90,10 +127,31 @@ export function Decision() {
                 {formatCurrency(impulse.price)}
               </span>
             </div>
+            {impulse.urgeStrength && (
+              <div className="mb-4">
+                <p className="text-sm text-base-content/70 mb-1">Urge BEFORE</p>
+                <div className="text-lg font-bold">{impulse.urgeStrength}/10</div>
+              </div>
+            )}
             {impulse.reason && (
               <p className="text-base-content/70 italic">"{impulse.reason}"</p>
             )}
           </div>
+
+          {/* Ask again: How strong now? */}
+          <div className="mb-6">
+            <UrgeStrengthSlider
+              value={urgeStrengthNow ?? impulse.urgeStrength ?? 5}
+              onChange={setUrgeStrengthNow}
+            />
+            <p className="text-xs text-base-content/60 mt-2 text-center">
+              Ask AGAIN: "How strong now?"
+            </p>
+          </div>
+
+          <p className="text-center text-base-content/70 mb-6">
+            Now that you've paused, what do you want to do?
+          </p>
 
           <div className="space-y-3">
             <GlassButton
@@ -105,29 +163,29 @@ export function Decision() {
               className="flex items-center justify-center gap-2"
             >
               <XCircle className="w-5 h-5" />
-              Skip It - Save {formatCurrency(impulse.price)}
-            </GlassButton>
-
-            <GlassButton
-              fullWidth
-              variant="accent"
-              size="lg"
-              onClick={() => handleDecision('buy')}
-              className="flex items-center justify-center gap-2"
-            >
-              <CheckCircle className="w-5 h-5" />
-              Buy It Anyway
+              I'll Skip It
             </GlassButton>
 
             <GlassButton
               fullWidth
               variant="outline"
               size="lg"
+              onClick={() => handleDecision('buy')}
+              className="flex items-center justify-center gap-2"
+            >
+              <CheckCircle className="w-5 h-5" />
+              I'll Buy It Anyway
+            </GlassButton>
+
+            <GlassButton
+              fullWidth
+              variant="ghost"
+              size="lg"
               onClick={() => handleDecision('save-later')}
               className="flex items-center justify-center gap-2"
             >
               <Clock className="w-5 h-5" />
-              Save for Later
+              Decide Later
             </GlassButton>
           </div>
         </Card>
@@ -197,6 +255,69 @@ export function Decision() {
         </Card>
         </div>
       </div>
+
+      {/* Gamification Messages */}
+      <AnimatePresence>
+        {showSkipMessage && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSkipMessage(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="bg-base-100 rounded-2xl p-8 max-w-md text-center shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                className="mb-4"
+              >
+                <Trophy className="w-16 h-16 mx-auto text-warning" />
+              </motion.div>
+              <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-success-400 to-warning-400 bg-clip-text text-transparent">
+                +20 XP for resisting
+              </h3>
+              <p className="text-base-content/70 mb-4">
+                You just avoided regret worth approx {formatCurrency(impulse.price)}.
+              </p>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Sparkles className="w-8 h-8 mx-auto text-primary animate-pulse" />
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showBuyMessage && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowBuyMessage(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="bg-base-100 rounded-2xl p-8 max-w-md text-center shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-base-content/70">
+                Okay. Just make sure it still feels right tomorrow.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

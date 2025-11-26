@@ -1,16 +1,38 @@
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { UserStats } from '@/utils/gamification';
 import { Flame, Trophy, Star, TrendingUp } from 'lucide-react';
 
 interface XPLevelCardProps {
   stats: UserStats;
+  levelName?: string;
+  xpThisWeek?: number;
   className?: string;
+  xpGained?: number; // For animation when XP is gained
 }
 
-export function XPLevelCard({ stats, className = '' }: XPLevelCardProps) {
+export function XPLevelCard({ stats, levelName, xpThisWeek, className = '', xpGained = 0 }: XPLevelCardProps) {
   const progress = stats.nextLevelXP > stats.currentLevelXP
     ? ((stats.xp - stats.currentLevelXP) / (stats.nextLevelXP - stats.currentLevelXP)) * 100
     : 100;
+  
+  // Animate progress bar when XP is gained
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  
+  useEffect(() => {
+    if (xpGained > 0) {
+      // Animate from current to new progress
+      const targetProgress = progress;
+      const startProgress = Math.max(0, targetProgress - (xpGained / (stats.nextLevelXP - stats.currentLevelXP)) * 100);
+      
+      setAnimatedProgress(startProgress);
+      setTimeout(() => {
+        setAnimatedProgress(targetProgress);
+      }, 100);
+    } else {
+      setAnimatedProgress(progress);
+    }
+  }, [progress, xpGained, stats.nextLevelXP, stats.currentLevelXP]);
 
   return (
     <motion.div
@@ -30,8 +52,24 @@ export function XPLevelCard({ stats, className = '' }: XPLevelCardProps) {
             </div>
           </div>
           <div>
-            <h3 className="text-lg font-bold">Level {stats.level}</h3>
-            <p className="text-sm text-base-content/70">Impulse Master</p>
+            <motion.h3 
+              className="text-lg font-bold"
+              key={stats.level}
+              initial={{ scale: 1 }}
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 0.5 }}
+            >
+              Level {stats.level}
+            </motion.h3>
+            <motion.p 
+              className="text-sm text-base-content/70"
+              key={levelName || 'Impulse Master'}
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {levelName || 'Impulse Master'}
+            </motion.p>
           </div>
         </div>
         
@@ -53,12 +91,31 @@ export function XPLevelCard({ stats, className = '' }: XPLevelCardProps) {
         </div>
         <div className="w-full bg-base-300/30 rounded-full h-3 overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full"
+            className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full relative"
             initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          />
+            animate={{ width: `${animatedProgress}%` }}
+            transition={{ 
+              duration: xpGained > 0 ? 1.2 : 0.8, 
+              ease: xpGained > 0 ? [0.4, 0, 0.2, 1] : 'easeOut' 
+            }}
+          >
+            {/* XP gain flash effect */}
+            {xpGained > 0 && (
+              <motion.div
+                className="absolute inset-0 bg-white/30 rounded-full"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: [0, 1, 0], scale: [0.8, 1.1, 1] }}
+                transition={{ duration: 0.6 }}
+              />
+            )}
+          </motion.div>
         </div>
+        {xpThisWeek !== undefined && (
+          <div className="flex items-center justify-between text-xs text-base-content/60 mt-2">
+            <span>XP earned this week: <span className="font-semibold text-primary">{xpThisWeek}</span></span>
+            <span>XP total: <span className="font-semibold text-accent">{stats.xp.toLocaleString()}</span></span>
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}

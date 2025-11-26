@@ -4,6 +4,7 @@ import { Impulse, ImpulseStatus, AppSettings } from '@/types/impulse';
 import { SavingsGoal } from '@/types/goal';
 import { loadImpulses, saveImpulses, loadSettings, saveSettings, loadGoals, saveGoals } from './db';
 import { calculateReportMetrics, getWeekRange, getMonthRange } from '@/utils/reports';
+import { showToast } from '@/components/ui/Toast';
 
 interface ImpulseStore {
   impulses: Impulse[];
@@ -12,7 +13,7 @@ interface ImpulseStore {
   loading: boolean;
   
   // Actions
-  addImpulse: (impulse: Omit<Impulse, 'id' | 'createdAt' | 'cooldownEndsAt' | 'status' | 'decisionAtEnd' | 'regretCheckAt' | 'regretScore' | 'notesAfterPurchase'>) => Promise<void>;
+  addImpulse: (impulse: Omit<Impulse, 'id' | 'createdAt' | 'cooldownEndsAt' | 'status' | 'decisionAtEnd' | 'regretCheckAt' | 'regretScore' | 'notesAfterPurchase'>) => Promise<Impulse>;
   updateImpulse: (id: string, updates: Partial<Impulse>) => Promise<void>;
   deleteImpulse: (id: string) => Promise<void>;
   makeDecision: (id: string, decision: 'skip' | 'buy' | 'save-later') => Promise<void>;
@@ -43,8 +44,12 @@ const defaultSettings: AppSettings = {
   reminderToLog: true,
   weeklyReportSummary: true,
   regretCheckReminders: true,
+  nightlyReminder: false,
+  reminderTime: '21:00',
+  shoppingAppPrompt: false,
   cloudSyncEnabled: false,
   smartAlertsEnabled: true,
+  accentColor: 'blue',
 };
 
 export const useImpulseStore = create<ImpulseStore>()(
@@ -56,91 +61,112 @@ export const useImpulseStore = create<ImpulseStore>()(
       loading: false,
 
       addImpulse: async (data) => {
-        const now = Date.now();
-        const { settings } = get();
-        const cooldownMs = settings.defaultCooldownHours * 60 * 60 * 1000;
-        
-        const newImpulse: Impulse = {
-          id: `impulse-${now}-${Math.random().toString(36).substr(2, 9)}`,
-          ...data,
-          createdAt: now,
-          cooldownEndsAt: now + cooldownMs,
-          status: 'cooldown',
-        };
+        try {
+          const now = Date.now();
+          const { settings } = get();
+          const cooldownMs = settings.defaultCooldownHours * 60 * 60 * 1000;
+          
+          const newImpulse: Impulse = {
+            id: `impulse-${now}-${Math.random().toString(36).substr(2, 9)}`,
+            ...data,
+            createdAt: now,
+            cooldownEndsAt: now + cooldownMs,
+            status: 'cooldown',
+          };
 
-        set((state) => ({
-          impulses: [...state.impulses, newImpulse],
-        }));
+          set((state) => ({
+            impulses: [...state.impulses, newImpulse],
+          }));
 
-        await get().saveToDB();
-        
-        // Cloud sync if enabled
-        const currentSettings = get().settings;
-        if (currentSettings.cloudSyncEnabled && currentSettings.cloudSyncUrl && currentSettings.cloudSyncKey) {
-          try {
-            const { syncImpulsesToCloud, initCloudSync } = await import('@/services/cloudSync');
-            initCloudSync({
-              enabled: true,
-              supabaseUrl: currentSettings.cloudSyncUrl!,
-              supabaseKey: currentSettings.cloudSyncKey!,
-              userId: 'user-' + (localStorage.getItem('userId') || Date.now().toString()),
-            });
-            await syncImpulsesToCloud(get().impulses);
-          } catch (error) {
-            console.warn('Cloud sync failed:', error);
+          await get().saveToDB();
+          
+          // Cloud sync if enabled
+          const currentSettings = get().settings;
+          if (currentSettings.cloudSyncEnabled && currentSettings.cloudSyncUrl && currentSettings.cloudSyncKey) {
+            try {
+              const { syncImpulsesToCloud, initCloudSync } = await import('@/services/cloudSync');
+              initCloudSync({
+                enabled: true,
+                supabaseUrl: currentSettings.cloudSyncUrl!,
+                supabaseKey: currentSettings.cloudSyncKey!,
+                userId: 'user-' + (localStorage.getItem('userId') || Date.now().toString()),
+              });
+              await syncImpulsesToCloud(get().impulses);
+            } catch (error) {
+              console.warn('Cloud sync failed:', error);
+            }
           }
+          
+          // Return the new impulse for navigation
+          return newImpulse;
+        } catch (error) {
+          console.error('Failed to add impulse:', error);
+          showToast('Something went wrong. Your impulses are still safe.', 'error');
+          throw error;
         }
       },
 
       updateImpulse: async (id, updates) => {
-        set((state) => ({
-          impulses: state.impulses.map((imp) =>
-            imp.id === id ? { ...imp, ...updates } : imp
-          ),
-        }));
+        try {
+          set((state) => ({
+            impulses: state.impulses.map((imp) =>
+              imp.id === id ? { ...imp, ...updates } : imp
+            ),
+          }));
 
-        await get().saveToDB();
-        
-        // Cloud sync if enabled
-        const currentSettings = get().settings;
-        if (currentSettings.cloudSyncEnabled && currentSettings.cloudSyncUrl && currentSettings.cloudSyncKey) {
-          try {
-            const { syncImpulsesToCloud, initCloudSync } = await import('@/services/cloudSync');
-            initCloudSync({
-              enabled: true,
-              supabaseUrl: currentSettings.cloudSyncUrl!,
-              supabaseKey: currentSettings.cloudSyncKey!,
-              userId: 'user-' + (localStorage.getItem('userId') || Date.now().toString()),
-            });
-            await syncImpulsesToCloud(get().impulses);
-          } catch (error) {
-            console.warn('Cloud sync failed:', error);
+          await get().saveToDB();
+          
+          // Cloud sync if enabled
+          const currentSettings = get().settings;
+          if (currentSettings.cloudSyncEnabled && currentSettings.cloudSyncUrl && currentSettings.cloudSyncKey) {
+            try {
+              const { syncImpulsesToCloud, initCloudSync } = await import('@/services/cloudSync');
+              initCloudSync({
+                enabled: true,
+                supabaseUrl: currentSettings.cloudSyncUrl!,
+                supabaseKey: currentSettings.cloudSyncKey!,
+                userId: 'user-' + (localStorage.getItem('userId') || Date.now().toString()),
+              });
+              await syncImpulsesToCloud(get().impulses);
+            } catch (error) {
+              console.warn('Cloud sync failed:', error);
+            }
           }
+        } catch (error) {
+          console.error('Failed to update impulse:', error);
+          showToast('Something went wrong. Your impulses are still safe.', 'error');
+          throw error;
         }
       },
 
       deleteImpulse: async (id) => {
-        set((state) => ({
-          impulses: state.impulses.filter((imp) => imp.id !== id),
-        }));
+        try {
+          set((state) => ({
+            impulses: state.impulses.filter((imp) => imp.id !== id),
+          }));
 
-        await get().saveToDB();
-        
-        // Cloud sync if enabled
-        const currentSettings = get().settings;
-        if (currentSettings.cloudSyncEnabled && currentSettings.cloudSyncUrl && currentSettings.cloudSyncKey) {
-          try {
-            const { syncImpulsesToCloud, initCloudSync } = await import('@/services/cloudSync');
-            initCloudSync({
-              enabled: true,
-              supabaseUrl: currentSettings.cloudSyncUrl!,
-              supabaseKey: currentSettings.cloudSyncKey!,
-              userId: 'user-' + (localStorage.getItem('userId') || Date.now().toString()),
-            });
-            await syncImpulsesToCloud(get().impulses);
-          } catch (error) {
-            console.warn('Cloud sync failed:', error);
+          await get().saveToDB();
+          
+          // Cloud sync if enabled
+          const currentSettings = get().settings;
+          if (currentSettings.cloudSyncEnabled && currentSettings.cloudSyncUrl && currentSettings.cloudSyncKey) {
+            try {
+              const { syncImpulsesToCloud, initCloudSync } = await import('@/services/cloudSync');
+              initCloudSync({
+                enabled: true,
+                supabaseUrl: currentSettings.cloudSyncUrl!,
+                supabaseKey: currentSettings.cloudSyncKey!,
+                userId: 'user-' + (localStorage.getItem('userId') || Date.now().toString()),
+              });
+              await syncImpulsesToCloud(get().impulses);
+            } catch (error) {
+              console.warn('Cloud sync failed:', error);
+            }
           }
+        } catch (error) {
+          console.error('Failed to delete impulse:', error);
+          showToast('Something went wrong. Your impulses are still safe.', 'error');
+          throw error;
         }
       },
 
@@ -321,6 +347,7 @@ export const useImpulseStore = create<ImpulseStore>()(
           });
         } catch (error) {
           console.error('Failed to load from DB:', error);
+          showToast('Something went wrong. Your impulses are still safe.', 'error');
           set({ loading: false });
         }
       },

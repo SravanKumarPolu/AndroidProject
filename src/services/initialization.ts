@@ -7,6 +7,7 @@ import { analytics } from './analytics';
 import { i18n } from '@/i18n';
 import { performanceMonitor } from '@/utils/performance';
 import { logger } from '@/utils/logger';
+import { appConfig } from '@/constants/app';
 import { Platform } from 'react-native';
 
 /**
@@ -14,17 +15,28 @@ import { Platform } from 'react-native';
  */
 function getDeviceLocale(): string {
   try {
-    // Try to use expo-localization if available
-    const Localization = require('expo-localization');
-    return Localization.getLocales()[0]?.languageCode || 'en';
-  } catch {
-    // Fallback to browser/system locale
-    if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
-      return navigator.language.split('-')[0] || 'en';
+    // Try to use expo-localization if available (native only)
+    if (Platform.OS !== 'web') {
+      try {
+        const Localization = require('expo-localization');
+        if (Localization && Localization.getLocales) {
+          return Localization.getLocales()[0]?.languageCode || 'en';
+        }
+      } catch {
+        // expo-localization not available, continue to fallback
+      }
     }
-    // Default to English
-    return 'en';
+  } catch {
+    // Ignore errors
   }
+  
+  // Fallback to browser/system locale
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+    return navigator.language.split('-')[0] || 'en';
+  }
+  
+  // Default to English
+  return 'en';
 }
 
 /**
@@ -38,9 +50,11 @@ export async function initializeApp(): Promise<void> {
     
     // Initialize analytics
     await analytics.initialize();
+    
+    // Track app start with version from app config
     analytics.track('app_started', {
       platform: Platform.OS,
-      version: require('../../app.json').expo.version,
+      version: appConfig.version,
     });
     
     // Initialize i18n with device locale

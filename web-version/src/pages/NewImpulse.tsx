@@ -7,6 +7,7 @@ import { GlassButton } from '@/components/ui/GlassButton';
 import { Input } from '@/components/ui/Input';
 import { CategoryPill } from '@/components/ui/CategoryPill';
 import { MoodSlider } from '@/components/ui/MoodSlider';
+import { UrgeStrengthSlider } from '@/components/ui/UrgeStrengthSlider';
 import { ImpulseCategory, UrgencyLevel, EmotionAtImpulse } from '@/types/impulse';
 import { predictRegret } from '@/utils/regretPrediction';
 import { getContextualAlert } from '@/services/smartAlerts';
@@ -23,9 +24,43 @@ export function NewImpulse() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState<ImpulseCategory | null>(null);
   const [urgency, setUrgency] = useState<UrgencyLevel>('medium');
+  const [urgeStrength, setUrgeStrength] = useState<number>(5); // 1-10 scale
   const [reason, setReason] = useState('');
   const [emotion, setEmotion] = useState<EmotionAtImpulse | null>(null);
+  const [isInfluenced, setIsInfluenced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pre-fill suggestions: often logged categories
+  const oftenLoggedCategories = useMemo(() => {
+    const categoryCounts = impulses.reduce((acc, imp) => {
+      acc[imp.category] = (acc[imp.category] || 0) + 1;
+      return acc;
+    }, {} as Record<ImpulseCategory, number>);
+    
+    return Object.entries(categoryCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([cat]) => cat as ImpulseCategory);
+  }, [impulses]);
+
+  // Pre-fill suggestions: recent merchants (from title)
+  const recentMerchants = useMemo(() => {
+    const merchantSet = new Set<string>();
+    impulses
+      .slice(0, 10)
+      .forEach((imp) => {
+        // Extract merchant name (first word or common patterns)
+        const words = imp.title.split(' ');
+        if (words.length > 0) {
+          const firstWord = words[0];
+          // Common merchant patterns
+          if (firstWord.length > 2 && !firstWord.match(/^\d+$/)) {
+            merchantSet.add(firstWord);
+          }
+        }
+      });
+    return Array.from(merchantSet).slice(0, 5);
+  }, [impulses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,22 +71,29 @@ export function NewImpulse() {
 
     setIsSubmitting(true);
     try {
-      await addImpulse({
+      // Create impulse data
+      const impulseData = {
         title: title.trim(),
         price: parseFloat(price),
         category,
         urgency,
+        urgeStrength,
         reason: reason.trim() || undefined,
         emotionAtImpulse: emotion || undefined,
-      });
+        isInfluenced: isInfluenced || undefined,
+      };
 
-      // Small delay for better UX
+      // Add impulse and get the new impulse
+      const newImpulse = await addImpulse(impulseData);
+
+      // Navigate to cooldown screen for the new impulse
       setTimeout(() => {
-        navigate('/');
+        navigate(`/cooldown/${newImpulse.id}`);
       }, 300);
     } catch (error) {
       console.error('Failed to add impulse:', error);
       setIsSubmitting(false);
+      // Error toast is already shown by the store
     }
   };
 
@@ -66,13 +108,14 @@ export function NewImpulse() {
       price: parseFloat(price),
       category,
       urgency,
+      urgeStrength,
       reason: reason.trim() || undefined,
       emotionAtImpulse: emotion || undefined,
       createdAt: Date.now(), // Add for timeOfDay calculation
     };
 
     return predictRegret(tempImpulse, impulses);
-  }, [title, price, category, urgency, emotion, reason, isFormValid, impulses]);
+  }, [title, price, category, urgency, urgeStrength, emotion, reason, isFormValid, impulses]);
 
   // Smart contextual alert based on current emotion
   const contextualAlert = useMemo(() => {
@@ -102,13 +145,28 @@ export function NewImpulse() {
   };
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <>
+      {/* Background blur overlay for bottom sheet effect (mobile) */}
       <motion.div
-        className="max-w-2xl mx-auto space-y-6"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      />
+      <motion.div
+        className="min-h-screen p-4 pb-24 relative z-50"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
       >
+        <motion.div
+          className="max-w-2xl mx-auto space-y-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
         {/* Header */}
         <motion.div
           className="flex items-center gap-4 mb-6"
@@ -136,12 +194,30 @@ export function NewImpulse() {
           <motion.div variants={itemVariants}>
             <Card>
               <Input
-                label="What do you want to buy?"
+                label="What do you feel like buying?"
                 placeholder="e.g., New iPhone 15 Pro"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
+              {/* Pre-fill suggestions: Recent merchants */}
+              {recentMerchants.length > 0 && !title && (
+                <div className="mt-3">
+                  <p className="text-xs text-base-content/60 mb-2">Recent merchants:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {recentMerchants.map((merchant) => (
+                      <button
+                        key={merchant}
+                        type="button"
+                        onClick={() => setTitle(merchant)}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-base-200/50 border border-base-300/50 hover:bg-base-200/80 hover:border-primary/30 transition-all"
+                      >
+                        {merchant}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
           </motion.div>
 
@@ -184,6 +260,33 @@ export function NewImpulse() {
                   />
                 ))}
               </div>
+              {/* Pre-fill suggestions: Often logged categories */}
+              {oftenLoggedCategories.length > 0 && !category && (
+                <div className="mt-3">
+                  <p className="text-xs text-base-content/60 mb-2">Often logged:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {oftenLoggedCategories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategory(cat)}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all capitalize"
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card>
+              <UrgeStrengthSlider
+                value={urgeStrength}
+                onChange={setUrgeStrength}
+              />
             </Card>
           </motion.div>
 
@@ -212,14 +315,6 @@ export function NewImpulse() {
                   </motion.label>
                 ))}
               </div>
-              <input
-                type="range"
-                min="0"
-                max="2"
-                value={urgencyLevels.indexOf(urgency)}
-                onChange={(e) => setUrgency(urgencyLevels[parseInt(e.target.value)])}
-                className="range range-primary mt-4"
-              />
             </Card>
           </motion.div>
 
@@ -235,15 +330,32 @@ export function NewImpulse() {
           <motion.div variants={itemVariants}>
             <Card>
               <label className="label">
-                <span className="label-text text-base-content/70">Reason (Optional)</span>
+                <span className="label-text text-base-content/70">Why do you want this right now?</span>
               </label>
               <textarea
-                className="textarea textarea-bordered w-full backdrop-blur-xl bg-base-200/30 border-base-300/50 mt-2 focus:border-primary-400/70 focus:ring-2 focus:ring-primary-400/20 transition-all"
-                placeholder="Why do you want this?"
+                className="textarea w-full backdrop-blur-xl bg-base-200/30 border-base-300/50 mt-2 focus:border-primary-400/70 focus:ring-2 focus:ring-primary-400/20 transition-all"
+                placeholder="Hungry? Bored? Reward? Stress?"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
               />
+              <p className="text-xs text-base-content/60 mt-2">Helper: Hungry? Bored? Reward? Stress?</p>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card>
+              <label className="label cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={isInfluenced}
+                  onChange={(e) => setIsInfluenced(e.target.checked)}
+                />
+                <span className="label-text text-base-content/70">
+                  Is anyone influencing this? (friends/social media etc.)
+                </span>
+              </label>
             </Card>
           </motion.div>
 
@@ -342,15 +454,16 @@ export function NewImpulse() {
                   animate={{ opacity: 1 }}
                 >
                   <Lock className="w-5 h-5" />
-                  Lock This Impulse
+                  Next: Rate your urge
                   <Sparkles className="w-4 h-4" />
                 </motion.span>
               )}
             </GlassButton>
           </motion.div>
         </form>
+        </motion.div>
       </motion.div>
-    </div>
+    </>
   );
 }
 

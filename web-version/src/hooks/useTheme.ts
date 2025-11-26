@@ -6,10 +6,19 @@ export function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (settings.theme === 'dark') {
-      root.setAttribute('data-theme', 'dark');
+    if (settings.theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e: MediaQueryListEvent) => {
+        root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      };
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     } else {
-      root.setAttribute('data-theme', 'light');
+      root.setAttribute('data-theme', settings.theme);
     }
   }, [settings.theme]);
 

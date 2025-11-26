@@ -42,7 +42,8 @@ export function GlassButton({
   return (
     <motion.button
       whileHover={{ scale: disabled || loading ? 1 : 1.05, y: -2 }}
-      whileTap={{ scale: disabled || loading ? 1 : 0.95 }}
+      whileTap={{ scale: disabled || loading ? 1 : 0.97 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${glowClass} ${className}`}
       disabled={disabled || loading}
       style={{

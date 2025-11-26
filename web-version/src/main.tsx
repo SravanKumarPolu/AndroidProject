@@ -22,6 +22,15 @@ if (import.meta.env.MODE === 'production') {
   });
 }
 
+// Check if first-time user and redirect to splash
+const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
+const hasCompletedSetup = localStorage.getItem('hasCompletedSetup') === 'true';
+
+// If first time, redirect to splash on initial load
+if (!hasCompletedOnboarding || !hasCompletedSetup) {
+  // Will be handled by Splash component routing
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>

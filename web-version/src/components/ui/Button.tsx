@@ -39,7 +39,8 @@ export function Button({
   return (
     <motion.button
       whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
-      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
+      whileTap={{ scale: disabled || loading ? 1 : 0.97 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
       disabled={disabled || loading}
       {...props}
