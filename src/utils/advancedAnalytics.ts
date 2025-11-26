@@ -217,7 +217,7 @@ export function calculateSavingsVelocity(impulses: Impulse[]): number {
 /**
  * Get top spending categories
  */
-export function getTopSpendingCategories(impulses: Impulse[], limit: number = 5): Array<{ category: string; total: number; count: number }> {
+export function getTopSpendingCategories(impulses: Impulse[], limit: number = 5): { category: string; total: number; count: number }[] {
   const categoryTotals = new Map<string, { total: number; count: number }>();
   
   impulses

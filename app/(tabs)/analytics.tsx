@@ -6,6 +6,7 @@ import { useImpulses } from '@/hooks/useImpulses';
 import { useStats } from '@/hooks/useStats';
 import { AnalyticsChart } from '@/components/AnalyticsChart';
 import { Card } from '@/components/ui/Card';
+import { ResultsDashboard } from '@/components/ResultsDashboard';
 import { colors } from '@/constants/colors';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
@@ -20,12 +21,12 @@ import {
 import { formatCurrency } from '@/utils/currency';
 import { CATEGORY_LABELS } from '@/constants/categories';
 
-type ChartType = 'spending' | 'category' | 'regret';
+type ChartType = 'results' | 'spending' | 'category' | 'regret';
 
 export default function AnalyticsScreen() {
   const { impulses, loadImpulses } = useImpulses();
   const { stats, categoryStats } = useStats(impulses);
-  const [selectedChart, setSelectedChart] = useState<ChartType>('spending');
+  const [selectedChart, setSelectedChart] = useState<ChartType>('results');
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -45,6 +46,7 @@ export default function AnalyticsScreen() {
   const avgDecisionTime = useMemo(() => calculateAverageDecisionTime(impulses), [impulses]);
 
   const chartTypes: { type: ChartType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { type: 'results', label: 'Results', icon: 'trophy' },
     { type: 'spending', label: 'Spending', icon: 'trending-up' },
     { type: 'category', label: 'Categories', icon: 'pie-chart' },
     { type: 'regret', label: 'Regret Rate', icon: 'alert-circle' },
@@ -97,10 +99,14 @@ export default function AnalyticsScreen() {
           ))}
         </View>
 
-        {/* Chart */}
-        <Card variant="elevated" style={styles.chartCard}>
-          <AnalyticsChart impulses={impulses} type={selectedChart} />
-        </Card>
+        {/* Results Dashboard or Chart */}
+        {selectedChart === 'results' ? (
+          <ResultsDashboard impulses={impulses} />
+        ) : (
+          <Card variant="elevated" style={styles.chartCard}>
+            <AnalyticsChart impulses={impulses} type={selectedChart} />
+          </Card>
+        )}
 
         {/* Advanced Metrics */}
         <Card variant="elevated" style={styles.insightsCard}>

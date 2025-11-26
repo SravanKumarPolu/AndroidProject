@@ -110,8 +110,8 @@ export function getLocationInsights(impulses: Impulse[]): LocationStats {
 export function getLocationClusters(
   impulses: Impulse[],
   maxDistanceKm: number = 1
-): Array<{ location: LocationData; impulses: Impulse[] }> {
-  const clusters: Array<{ location: LocationData; impulses: Impulse[] }> = [];
+): { location: LocationData; impulses: Impulse[] }[] {
+  const clusters: { location: LocationData; impulses: Impulse[] }[] = [];
   const processed = new Set<string>();
 
   impulses.forEach(impulse => {
@@ -151,7 +151,7 @@ export function getLocationClusters(
 export function getLocationPatterns(impulses: Impulse[]): {
   homeLocation?: LocationData;
   workLocation?: LocationData;
-  frequentLocations: Array<{ location: string; count: number }>;
+  frequentLocations: { location: string; count: number }[];
 } {
   const locationCounts = new Map<string, { count: number; data: LocationData }>();
 

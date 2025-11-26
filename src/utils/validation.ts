@@ -9,6 +9,9 @@ import { ImpulseCategory, EmotionTag, UrgencyLevel, CoolDownPeriod } from '@/typ
 export const impulseCategorySchema = z.enum([
   'FOOD',
   'SHOPPING',
+  'TRAVEL',
+  'DIGITAL',
+  'GAMING',
   'ENTERTAINMENT',
   'TRADING',
   'CRYPTO',
@@ -18,9 +21,12 @@ export const impulseCategorySchema = z.enum([
 ]);
 
 export const emotionTagSchema = z.enum([
+  'HUNGER',
   'BORED',
   'STRESSED',
   'FOMO',
+  'SALE',
+  'PEER_INFLUENCE',
   'HAPPY',
   'LONELY',
   'NONE',

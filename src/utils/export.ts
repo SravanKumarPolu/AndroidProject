@@ -1,9 +1,21 @@
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 import { Impulse } from '@/types/impulse';
 import { formatDateTime } from './date';
 import { formatCurrency } from './currency';
 import { CATEGORY_LABELS } from '@/constants/categories';
+
+// Conditionally import native modules only on native platforms
+let FileSystem: typeof import('expo-file-system') | null = null;
+let Sharing: typeof import('expo-sharing') | null = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    FileSystem = require('expo-file-system');
+    Sharing = require('expo-sharing');
+  } catch (error) {
+    console.warn('Native file modules not available:', error);
+  }
+}
 
 /**
  * Export impulses as CSV
@@ -72,6 +84,27 @@ export async function exportData(
 
     const content = format === 'csv' ? exportToCSV(impulses) : exportToJSON(impulses);
     const filename = `impulsevault-export-${new Date().toISOString().split('T')[0]}.${format}`;
+
+    if (Platform.OS === 'web') {
+      // On web, download the file directly
+      const blob = new Blob([content], {
+        type: format === 'csv' ? 'text/csv' : 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      return true;
+    }
+
+    if (!FileSystem || !Sharing) {
+      throw new Error('File system not available');
+    }
+
     const fileUri = `${FileSystem.documentDirectory}${filename}`;
 
     // Write file

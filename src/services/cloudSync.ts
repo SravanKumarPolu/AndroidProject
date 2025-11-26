@@ -3,6 +3,7 @@ import { Impulse } from '@/types/impulse';
 import { AppSettings } from './settings';
 import { getSupabaseClient, isSupabaseConfigured } from './supabase';
 import { logger } from '@/utils/logger';
+import { withNetworkRetry } from '@/utils/errorRecovery';
 
 /**
  * Cloud Sync Service
@@ -103,6 +104,7 @@ async function clearPendingSync(): Promise<void> {
 
 /**
  * Sync impulses to cloud (Supabase)
+ * Includes network retry logic for reliability
  */
 export async function syncToCloud(impulses: Impulse[]): Promise<boolean> {
   const enabled = await isCloudSyncEnabled();
@@ -142,7 +144,8 @@ export async function syncToCloud(impulses: Impulse[]): Promise<boolean> {
 
     const userId = user.id;
 
-    // Upsert impulses (insert or update)
+    // Upsert impulses (insert or update) with network retry
+    const result = await withNetworkRetry(async () => {
     const { error } = await supabase
       .from('impulses')
       .upsert(
@@ -158,6 +161,13 @@ export async function syncToCloud(impulses: Impulse[]): Promise<boolean> {
 
     if (error) {
       throw error;
+      }
+      
+      return true;
+    }, 3, 1000);
+
+    if (!result.success) {
+      throw result.error || new Error('Failed to sync to cloud');
     }
 
     await setLastSyncTime(Date.now());

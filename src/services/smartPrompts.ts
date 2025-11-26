@@ -1,9 +1,19 @@
+import { Platform } from 'react-native';
 import { Impulse } from '@/types/impulse';
 import { getWeakHours } from '@/utils/timePatterns';
 import { formatHour } from '@/utils/timePatterns';
-import * as Notifications from 'expo-notifications';
 import { requestPermissions } from './notifications';
 import { logger } from '@/utils/logger';
+
+// Conditionally import expo-notifications only on native platforms
+let Notifications: typeof import('expo-notifications') | null = null;
+if (Platform.OS !== 'web') {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (error) {
+    console.warn('expo-notifications not available:', error);
+  }
+}
 
 /**
  * Smart Prompts Service
@@ -95,6 +105,26 @@ export async function sendSmartPrompt(
   }
 
   if (title && body) {
+    if (Platform.OS === 'web' as any) {
+      // On web, use browser notifications
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+        new Notification(title, {
+          body,
+          icon: '/favicon.png',
+          tag: `smart-prompt-${trigger}`,
+        });
+        } catch (error) {
+          logger.error('Error showing web notification', error instanceof Error ? error : new Error(String(error)));
+        }
+      }
+      return;
+    }
+
+    if (!Notifications) {
+      return;
+    }
+
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -131,6 +161,15 @@ export async function scheduleDailySmartPrompts(impulses: Impulse[]): Promise<vo
   }
   
   // Cancel existing smart prompt notifications
+  if (Platform.OS === 'web') {
+    // Web notifications are handled differently
+    return;
+  }
+
+  if (!Notifications) {
+    return;
+  }
+
   try {
     const allNotifications = await Notifications.getAllScheduledNotificationsAsync();
     const smartPrompts = allNotifications.filter(
@@ -157,6 +196,15 @@ export async function scheduleDailySmartPrompts(impulses: Impulse[]): Promise<vo
     }
 
     const delay = targetTime.getTime() - now.getTime();
+
+    if (Platform.OS === 'web' as any) {
+      // Web notifications don't support recurring schedules easily
+      return;
+    }
+
+    if (!Notifications) {
+      return;
+    }
 
     try {
       await Notifications.scheduleNotificationAsync({
@@ -189,6 +237,14 @@ export async function scheduleDailySmartPrompts(impulses: Impulse[]): Promise<vo
 
     const delay = reminderTime.getTime() - now.getTime();
 
+    if (Platform.OS === 'web' as any) {
+      return;
+    }
+
+    if (!Notifications) {
+      return;
+    }
+
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -219,6 +275,14 @@ export async function scheduleDailySmartPrompts(impulses: Impulse[]): Promise<vo
       quickAddTime.setDate(quickAddTime.getDate() + 1);
     }
     const delay = quickAddTime.getTime() - now.getTime();
+    if (Platform.OS === 'web' as any) {
+      return;
+    }
+
+    if (!Notifications) {
+      return;
+    }
+
     try {
       await Notifications.scheduleNotificationAsync({
         content: {

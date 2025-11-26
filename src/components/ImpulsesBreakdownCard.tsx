@@ -34,6 +34,11 @@ export function ImpulsesBreakdownCard({ monthlyStats }: ImpulsesBreakdownCardPro
           Regrets: {monthlyStats.totalRegretted}
         </Text>
       </View>
+      {monthlyStats.totalLogged === 0 && (
+        <Text style={[styles.hint, { color: colors.textLight }]}>
+          Keep logging impulses to see insights
+        </Text>
+      )}
     </Card>
   );
 }
@@ -59,6 +64,11 @@ const styles = StyleSheet.create({
   },
   separator: {
     fontSize: typography.fontSize.base,
+  },
+  hint: {
+    fontSize: typography.fontSize.sm,
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
   },
 });
 

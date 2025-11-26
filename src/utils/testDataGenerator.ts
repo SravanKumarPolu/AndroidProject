@@ -164,6 +164,9 @@ function getRandomTitle(category: ImpulseCategory): string {
   const titles: Record<ImpulseCategory, string[]> = {
     FOOD: ['Swiggy Order', 'Zomato Delivery', 'Restaurant Meal', 'Snacks', 'Coffee'],
     SHOPPING: ['Amazon Purchase', 'Flipkart Order', 'Clothing', 'Electronics', 'Accessories'],
+    TRAVEL: ['Flight Ticket', 'Hotel Booking', 'Train Reservation', 'Travel Package'],
+    DIGITAL: ['Software License', 'App Purchase', 'Digital Service', 'Cloud Storage'],
+    GAMING: ['In-Game Purchase', 'Game DLC', 'Gaming Accessories', 'Steam Game'],
     ENTERTAINMENT: ['Movie Ticket', 'Streaming Subscription', 'Game Purchase', 'Concert Ticket'],
     TRADING: ['Stock Options', 'Futures Trade', 'Day Trading', 'Options Trade'],
     CRYPTO: ['Bitcoin', 'Ethereum', 'Altcoin', 'Meme Coin', 'NFT'],

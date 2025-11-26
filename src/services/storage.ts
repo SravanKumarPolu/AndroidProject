@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Impulse } from '@/types/impulse';
 import { logger } from '@/utils/logger';
+import { safeStorageOperation, recoverCorruptedData } from '@/utils/errorRecovery';
 
 const IMPULSES_KEY = '@impulsevault:impulses';
 const SETTINGS_KEY = '@impulsevault:settings';
@@ -13,20 +14,52 @@ const SETTINGS_KEY = '@impulsevault:settings';
 export const storage = {
   // Impulses
   async getImpulses(): Promise<Impulse[]> {
-    try {
-      const data = await AsyncStorage.getItem(IMPULSES_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      logger.error('Error getting impulses', error instanceof Error ? error : new Error(String(error)));
-      return [];
-    }
+    return recoverCorruptedData<Impulse[]>(
+      IMPULSES_KEY,
+      [],
+      (data): data is Impulse[] => Array.isArray(data)
+    ).then(result => {
+      if (result.recovered) {
+        logger.warn('Recovered corrupted impulses data');
+      }
+      return result.data || [];
+    });
   },
 
   async saveImpulses(impulses: Impulse[]): Promise<void> {
     try {
       await AsyncStorage.setItem(IMPULSES_KEY, JSON.stringify(impulses));
     } catch (error) {
-      logger.error('Error saving impulses', error instanceof Error ? error : new Error(String(error)));
+      const err = error instanceof Error ? error : new Error(String(error));
+      
+      // Check if it's a quota error and try recovery
+      const isQuotaError = 
+        err.message.includes('quota') ||
+        err.message.includes('QuotaExceeded') ||
+        err.message.includes('NS_ERROR_DOM_QUOTA_REACHED');
+      
+      if (isQuotaError) {
+        logger.warn('Storage quota exceeded, attempting cleanup...');
+        try {
+          // Clear old backup data
+          const keys = await AsyncStorage.getAllKeys();
+          const backupKeys = keys.filter(k => k.includes('_corrupted_backup_'));
+          if (backupKeys.length > 3) {
+            const oldBackups = backupKeys.sort().slice(0, backupKeys.length - 3);
+            await AsyncStorage.multiRemove(oldBackups);
+          }
+          
+          // Retry
+          await AsyncStorage.setItem(IMPULSES_KEY, JSON.stringify(impulses));
+          logger.info('Successfully saved after quota recovery');
+          return;
+        } catch (retryError) {
+          logger.error('Error saving impulses after recovery', retryError instanceof Error ? retryError : new Error(String(retryError)));
+          throw retryError;
+        }
+      }
+      
+      logger.error('Error saving impulses', err);
       throw error;
     }
   },

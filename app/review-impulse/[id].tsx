@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -21,6 +21,10 @@ import { formatDateTime, isTimePast } from '@/utils/date';
 import { getFunEquivalents, formatFunEquivalent } from '@/utils/funEquivalents';
 import { Impulse, SkippedFeeling, FinalFeeling } from '@/types/impulse';
 import { trackPositiveAction, promptRatingIfAppropriate } from '@/services/rating';
+import { ReflectionQuestions } from '@/components/ReflectionQuestions';
+import { useGoals } from '@/hooks/useGoals';
+import { RegretAnalysis } from '@/components/RegretAnalysis';
+import { getPastRegrets, calculateSimilarImpulsesWaste } from '@/utils/cooldownHelpers';
 
 export default function ReviewImpulseScreen() {
   const router = useRouter();
@@ -29,6 +33,7 @@ export default function ReviewImpulseScreen() {
   const { impulses, cancelImpulse, executeImpulse, markRegret, updateImpulse } = useImpulses();
   const { isStrictMode } = useSettings();
   const { showError, showSuccess } = useToast();
+  const { activeGoals } = useGoals(impulses);
   
   const impulse = impulses.find(i => i.id === id);
   const [loading, setLoading] = useState(false);
@@ -51,6 +56,19 @@ export default function ReviewImpulseScreen() {
     i.finalFeeling === 'REGRET' && 
     i.id !== impulse.id
   ).slice(0, 3) : [];
+  
+  // Calculate regret analysis data (for executed impulses with finalFeeling)
+  const regretAnalysisData = useMemo(() => {
+    if (!impulse || impulse.status !== 'EXECUTED' || !impulse.finalFeeling) {
+      return null;
+    }
+    const similarRegrets = getPastRegrets(impulse, impulses, 5);
+    const similarWaste = calculateSimilarImpulsesWaste(impulse, impulses);
+    return {
+      similarRegrets,
+      totalWastedOnSimilar: similarWaste.totalWasted + (impulse.price || 0),
+    };
+  }, [impulse, impulses]);
 
   if (!impulse) {
     return (
@@ -115,11 +133,39 @@ export default function ReviewImpulseScreen() {
     setLoading(true);
     try {
       await executeImpulse(impulse.id);
-      showSuccess('Impulse executed. We\'ll check in with you in 24 hours to see how you feel about it.');
+      showSuccess('Impulse executed. We\'ll check in with you in 3 days to see how you feel about it.');
       router.back();
     } catch (error) {
       console.error('Error executing impulse:', error);
       showError('Failed to execute impulse. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveForLater = async () => {
+    // Check if cool-down has ended
+    if (impulse && !isTimePast(impulse.reviewAt)) {
+      Alert.alert(
+        'Still Locked',
+        'This impulse is still in cool-down. Please wait until the timer ends.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Extend review date by 24 hours
+      const newReviewAt = Date.now() + (24 * 60 * 60 * 1000);
+      await updateImpulse(impulse.id, {
+        reviewAt: newReviewAt,
+      });
+      showSuccess('Saved for later. We\'ll remind you in 24 hours.');
+      router.back();
+    } catch (error) {
+      console.error('Error saving for later:', error);
+      showError('Failed to save for later. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -143,7 +189,13 @@ export default function ReviewImpulseScreen() {
     reasonHint: { color: colors.textLight },
   };
 
-  // If already executed, show regret check
+  // If already executed and 3+ days have passed, show regret analysis
+  const daysSinceExecution = impulse.executedAt 
+    ? Math.floor((Date.now() - impulse.executedAt) / (24 * 60 * 60 * 1000))
+    : 0;
+  const showRegretAnalysis = impulse.status === 'EXECUTED' && impulse.finalFeeling && daysSinceExecution >= 3;
+  
+  // If already executed but no rating yet, show regret check
   if (impulse.status === 'EXECUTED' && !impulse.finalFeeling) {
     return (
     <SafeAreaView style={[styles.container, dynamicStyles.container]} edges={['top', 'bottom']}>
@@ -182,6 +234,15 @@ export default function ReviewImpulseScreen() {
             />
           )}
 
+          {/* Regret Analysis - Show after rating is saved */}
+          {impulse.finalFeeling && regretAnalysisData && (
+            <RegretAnalysis
+              impulse={impulse}
+              similarRegrets={regretAnalysisData.similarRegrets}
+              totalWastedOnSimilar={regretAnalysisData.totalWastedOnSimilar}
+            />
+          )}
+
           <View style={styles.buttons}>
             <RegretRatingSelector
               onRatingSelect={setSelectedRegretRating}
@@ -208,8 +269,9 @@ export default function ReviewImpulseScreen() {
                   }
                   
                   await markRegret(impulse.id, feeling, selectedRegretRating);
-                  showSuccess('Thanks for the feedback!');
-                  router.back();
+                  showSuccess('Thanks for the feedback! Your regret analysis is now available.');
+                  // Don't navigate back - show regret analysis instead
+                  // The component will re-render with finalFeeling set
                 } catch (error) {
                   console.error('Error marking regret:', error);
                   showError('Failed to save feedback. Please try again.');
@@ -273,6 +335,23 @@ export default function ReviewImpulseScreen() {
             You logged this {formatDateTime(impulse.createdAt)}. Still want it?
           </Text>
         </View>
+
+        {/* Reflection Questions */}
+        {impulse && isTimePast(impulse.reviewAt) && !showRegretAnalysis && (
+          <ReflectionQuestions 
+            impulsePrice={impulse.price}
+            activeGoals={activeGoals}
+          />
+        )}
+
+        {/* Regret Analysis - Show after 3 days if executed and rated */}
+        {showRegretAnalysis && regretAnalysisData && (
+          <RegretAnalysis
+            impulse={impulse}
+            similarRegrets={regretAnalysisData.similarRegrets}
+            totalWastedOnSimilar={regretAnalysisData.totalWastedOnSimilar}
+          />
+        )}
 
         <Card variant="elevated" style={styles.impulseCard}>
           <View style={styles.categoryRow}>
@@ -356,7 +435,7 @@ export default function ReviewImpulseScreen() {
         {!showFeeling && !showReason ? (
           <View style={styles.buttons}>
             <Button
-              title="Skip this purchase"
+              title="Skip"
               onPress={() => {
                 if (isStrictMode) {
                   setShowReason(true);
@@ -371,7 +450,7 @@ export default function ReviewImpulseScreen() {
               disabled={impulse && !isTimePast(impulse.reviewAt)}
             />
             <Button
-              title="Still buying"
+              title="Buy anyway"
               onPress={() => {
                 if (isStrictMode && impulse && !isTimePast(impulse.reviewAt)) {
                   setShowExecuteReason(true);
@@ -385,6 +464,16 @@ export default function ReviewImpulseScreen() {
               loading={loading}
               style={styles.button}
               disabled={!isStrictMode && impulse && !isTimePast(impulse.reviewAt)}
+            />
+            <Button
+              title="Save for later"
+              onPress={handleSaveForLater}
+              variant="ghost"
+              size="md"
+              fullWidth
+              loading={loading}
+              style={styles.button}
+              disabled={impulse && !isTimePast(impulse.reviewAt)}
             />
           </View>
         ) : showReason ? (

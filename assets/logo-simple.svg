@@ -1,0 +1,38 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modern, Clean Lock Icon with Vault Concept -->
+  
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="200" fill="#6366F1"/>
+  
+  <!-- Lock Icon -->
+  <g transform="translate(512, 400)">
+    <!-- Lock Shackle -->
+    <path d="M -100 -100 Q -100 -200, 0 -200 Q 100 -200, 100 -100" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="50" 
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Lock Body -->
+    <rect x="-100" y="-100" width="200" height="180" rx="25" fill="#FFFFFF"/>
+    
+    <!-- Keyhole -->
+    <circle cx="0" cy="-20" r="35" fill="#6366F1"/>
+    <rect x="-10" y="-20" width="20" height="70" fill="#6366F1" rx="5"/>
+  </g>
+  
+  <!-- Vault Door Lines (representing security) -->
+  <g transform="translate(512, 600)" opacity="0.3">
+    <line x1="-150" y1="0" x2="150" y2="0" stroke="#FFFFFF" stroke-width="8"/>
+    <line x1="-150" y1="30" x2="150" y2="30" stroke="#FFFFFF" stroke-width="8"/>
+    <line x1="-150" y1="60" x2="150" y2="60" stroke="#FFFFFF" stroke-width="8"/>
+  </g>
+  
+  <!-- Money/Coin Symbol -->
+  <g transform="translate(512, 750)">
+    <circle cx="0" cy="0" r="60" fill="#10B981" opacity="0.9"/>
+    <text x="0" y="25" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#FFFFFF" text-anchor="middle">$</text>
+  </g>
+</svg>
+

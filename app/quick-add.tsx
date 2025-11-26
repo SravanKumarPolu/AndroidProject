@@ -82,11 +82,14 @@ export default function QuickAddScreen() {
 
     setLoading(true);
     try {
-      await createImpulse({
-        ...validation.data!,
+      const impulseData = {
+        title: validation.data!.title,
+        category: validation.data!.category,
         price: validation.data!.price ?? undefined,
-        emotion: validation.data!.emotion ?? undefined,
-      });
+        urgency: validation.data!.urgency,
+        coolDownPeriod: validation.data!.coolDownPeriod,
+      };
+      await createImpulse(impulseData);
       showSuccess('Impulse locked! You\'ll be notified in 24 hours.');
       router.back();
     } catch (error) {

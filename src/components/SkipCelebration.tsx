@@ -131,7 +131,7 @@ export function SkipCelebration({ visible, amount, onClose }: SkipCelebrationPro
           <Text style={styles.icon}>🎉</Text>
           <Text style={[styles.title, { color: colors.text }]}>Great Decision!</Text>
           <Text style={[styles.amount, { color: colors.success[700] }]}>
-            You kept {formatCurrency(amount)}
+            You saved {formatCurrency(amount)}
           </Text>
           
           {funEquivalent && (

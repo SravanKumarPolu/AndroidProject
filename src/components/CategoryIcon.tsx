@@ -16,6 +16,9 @@ export function CategoryIcon({ category, size = 24, color = colors.text }: Categ
   const iconMap: Record<ImpulseCategory, keyof typeof Ionicons.glyphMap> = {
     FOOD: 'fast-food-outline',
     SHOPPING: 'bag-outline',
+    TRAVEL: 'airplane-outline',
+    DIGITAL: 'laptop-outline',
+    GAMING: 'game-controller-outline',
     ENTERTAINMENT: 'play-circle-outline',
     TRADING: 'trending-up-outline',
     CRYPTO: 'logo-bitcoin',

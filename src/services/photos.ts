@@ -1,8 +1,24 @@
-import * as FileSystem from 'expo-file-system';
-import * as ImagePicker from 'expo-image-picker';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 
-const PHOTOS_DIR = `${FileSystem.documentDirectory}impulse_photos/`;
+// Conditionally import native modules only on native platforms
+let FileSystem: typeof import('expo-file-system') | null = null;
+let ImagePicker: typeof import('expo-image-picker') | null = null;
+let manipulateAsync: typeof import('expo-image-manipulator').manipulateAsync | null = null;
+let SaveFormat: typeof import('expo-image-manipulator').SaveFormat | null = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    FileSystem = require('expo-file-system');
+    ImagePicker = require('expo-image-picker');
+    const ImageManipulator = require('expo-image-manipulator');
+    manipulateAsync = ImageManipulator.manipulateAsync;
+    SaveFormat = ImageManipulator.SaveFormat;
+  } catch (error) {
+    console.warn('Native image modules not available:', error);
+  }
+}
+
+const PHOTOS_DIR = Platform.OS === 'web' ? '' : `${FileSystem?.documentDirectory || ''}impulse_photos/`;
 const MAX_IMAGE_SIZE = 1920; // Max width/height in pixels
 const COMPRESSION_QUALITY = 0.8; // 80% quality
 
@@ -15,6 +31,16 @@ export const photos = {
    * Initialize photos directory
    */
   async ensurePhotosDirectory(): Promise<void> {
+    if (Platform.OS === 'web') {
+      // On web, we use IndexedDB or localStorage for file storage
+      // No directory creation needed
+      return;
+    }
+
+    if (!FileSystem) {
+      return;
+    }
+
     const dirInfo = await FileSystem.getInfoAsync(PHOTOS_DIR);
     if (!dirInfo.exists) {
       await FileSystem.makeDirectoryAsync(PHOTOS_DIR, { intermediates: true });
@@ -25,6 +51,15 @@ export const photos = {
    * Request camera/media library permissions
    */
   async requestPermissions(): Promise<boolean> {
+    if (Platform.OS === 'web') {
+      // On web, file input doesn't require permissions
+      return true;
+    }
+
+    if (!ImagePicker) {
+      return false;
+    }
+
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
@@ -35,19 +70,53 @@ export const photos = {
    * Pick image from camera or library
    */
   async pickImage(source: 'camera' | 'library' = 'library'): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      // On web, use file input
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        if (source === 'camera' && 'capture' in input) {
+          (input as any).capture = 'environment';
+        }
+        
+        input.onchange = (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (!file) {
+            resolve(null);
+            return;
+          }
+
+          // Create object URL for the selected file
+          const objectUrl = URL.createObjectURL(file);
+          resolve(objectUrl);
+        };
+
+        input.oncancel = () => {
+          resolve(null);
+        };
+
+        input.click();
+      });
+    }
+
+    if (!ImagePicker) {
+      throw new Error('Image picker not available');
+    }
+
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) {
       throw new Error('Camera and media library permissions are required');
     }
 
-    const options: ImagePicker.ImagePickerOptions = {
+    const options: any = {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1, // We'll compress manually
     };
 
-    let result: ImagePicker.ImagePickerResult;
+    let result: any;
 
     if (source === 'camera') {
       result = await ImagePicker.launchCameraAsync(options);
@@ -68,6 +137,16 @@ export const photos = {
    * Returns the local file URI
    */
   async savePhotoForImpulse(impulseId: string, imageUri: string): Promise<string> {
+    if (Platform.OS === 'web') {
+      // On web, store image in IndexedDB or return blob URL
+      // For now, return the blob URL as-is (could be enhanced with IndexedDB storage)
+      return imageUri;
+    }
+
+    if (!FileSystem || !manipulateAsync || !SaveFormat) {
+      throw new Error('File system or image manipulator not available');
+    }
+
     await this.ensurePhotosDirectory();
 
     // Compress and resize image
@@ -104,6 +183,18 @@ export const photos = {
    * Delete photo for an impulse
    */
   async deletePhoto(photoUri: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      // On web, revoke blob URL if it's a blob URL
+      if (photoUri.startsWith('blob:')) {
+        URL.revokeObjectURL(photoUri);
+      }
+      return;
+    }
+
+    if (!FileSystem) {
+      return;
+    }
+
     try {
       const fileInfo = await FileSystem.getInfoAsync(photoUri);
       if (fileInfo.exists) {
@@ -119,6 +210,20 @@ export const photos = {
    * Delete all photos for an impulse
    */
   async deleteImpulsePhotos(impulseId: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      // On web, photos are stored as blob URLs in the data
+      // They'll be cleaned up when the impulse is deleted
+      return;
+    }
+
+    if (!FileSystem) {
+      return;
+    }
+
+    if (!FileSystem) {
+      return;
+    }
+
     try {
       await this.ensurePhotosDirectory();
       const files = await FileSystem.readDirectoryAsync(PHOTOS_DIR);
@@ -127,7 +232,7 @@ export const photos = {
       
       await Promise.all(
         impulseFiles.map(file => 
-          FileSystem.deleteAsync(`${PHOTOS_DIR}${file}`, { idempotent: true })
+          FileSystem!.deleteAsync(`${PHOTOS_DIR}${file}`, { idempotent: true })
         )
       );
     } catch (error) {
@@ -139,6 +244,19 @@ export const photos = {
    * Clean up orphaned photos (photos without corresponding impulses)
    */
   async cleanupOrphanedPhotos(impulseIds: string[]): Promise<void> {
+    if (Platform.OS === 'web') {
+      // On web, photos are managed differently
+      return;
+    }
+
+    if (!FileSystem) {
+      return;
+    }
+
+    if (!FileSystem) {
+      return;
+    }
+
     try {
       await this.ensurePhotosDirectory();
       const files = await FileSystem.readDirectoryAsync(PHOTOS_DIR);
@@ -151,7 +269,7 @@ export const photos = {
 
       await Promise.all(
         orphanedFiles.map(file =>
-          FileSystem.deleteAsync(`${PHOTOS_DIR}${file}`, { idempotent: true })
+          FileSystem!.deleteAsync(`${PHOTOS_DIR}${file}`, { idempotent: true })
         )
       );
     } catch (error) {
@@ -163,13 +281,22 @@ export const photos = {
    * Delete all photos (used when clearing all data)
    */
   async deleteAllPhotos(): Promise<void> {
+    if (Platform.OS === 'web') {
+      // On web, photos are managed differently
+      return;
+    }
+
+    if (!FileSystem) {
+      return;
+    }
+
     try {
       await this.ensurePhotosDirectory();
       const files = await FileSystem.readDirectoryAsync(PHOTOS_DIR);
       
       await Promise.all(
         files.map(file =>
-          FileSystem.deleteAsync(`${PHOTOS_DIR}${file}`, { idempotent: true })
+          FileSystem!.deleteAsync(`${PHOTOS_DIR}${file}`, { idempotent: true })
         )
       );
     } catch (error) {
@@ -184,6 +311,15 @@ export const photos = {
   async getPhotoUri(photoUri: string | undefined): Promise<string | null> {
     if (!photoUri) return null;
     
+    if (Platform.OS === 'web') {
+      // On web, return blob URL as-is
+      return photoUri;
+    }
+
+    if (!FileSystem) {
+      return null;
+    }
+
     const fileInfo = await FileSystem.getInfoAsync(photoUri);
     return fileInfo.exists ? photoUri : null;
   },
@@ -192,6 +328,16 @@ export const photos = {
    * Get total storage used by photos
    */
   async getPhotosStorageSize(): Promise<number> {
+    if (Platform.OS === 'web') {
+      // On web, storage calculation would require IndexedDB API
+      // For now, return 0
+      return 0;
+    }
+
+    if (!FileSystem) {
+      return 0;
+    }
+
     try {
       await this.ensurePhotosDirectory();
       const files = await FileSystem.readDirectoryAsync(PHOTOS_DIR);

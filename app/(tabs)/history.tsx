@@ -229,29 +229,29 @@ export default function HistoryScreen() {
               {/* Skeleton rows */}
               {/* @ts-ignore */}
               <View style={{ padding: spacing.base, borderRadius: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 12, width: 100, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '70%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
               </View>
               {/* @ts-ignore */}
               <View style={{ padding: spacing.base, borderRadius: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 12, width: 120, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '60%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
               </View>
               {/* @ts-ignore */}
               <View style={{ padding: spacing.base, borderRadius: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 12, width: 90, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '80%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
               </View>
             </View>

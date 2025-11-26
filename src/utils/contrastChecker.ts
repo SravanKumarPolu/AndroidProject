@@ -159,7 +159,7 @@ export function findAccessibleColor(
   const needsDarkening = fgLum > bgLum;
   
   // Adjust color to reach target ratio
-  let adjusted = { ...rgb };
+  const adjusted = { ...rgb };
   let iterations = 0;
   
   while (iterations < maxIterations) {

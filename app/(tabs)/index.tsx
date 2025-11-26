@@ -24,6 +24,7 @@ import { BudgetCard } from '@/components/BudgetCard';
 import { MonthlyDashboardCard } from '@/components/MonthlyDashboardCard';
 import { ImpulsesBreakdownCard } from '@/components/ImpulsesBreakdownCard';
 import { InsightsCard } from '@/components/InsightsCard';
+import { ImpulseScoreCard } from '@/components/ImpulseScoreCard';
 import { TerminalBackground } from '@/components/TerminalBackground';
 import { TerminalGlow } from '@/components/TerminalGlow';
 import { getLastWeekReview } from '@/utils/weeklyReview';
@@ -31,6 +32,8 @@ import { getCurrentMonthStats } from '@/utils/monthlyStats';
 import { getWorstMoodTrigger } from '@/utils/moodTrigger';
 import { getMostDangerousCategory } from '@/utils/categoryAnalysis';
 import { useBudget } from '@/hooks/useBudget';
+import { detectPersona, getPersonaInsights } from '@/utils/personaInsights';
+import { PersonaCard } from '@/components/PersonaCard';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
 import { appConfig } from '@/constants/app';
@@ -78,6 +81,18 @@ export default function HomeScreen() {
   const worstMoodTrigger = React.useMemo(() => 
     getWorstMoodTrigger(impulses), 
     [impulses]
+  );
+  
+  // Detect user persona
+  const detectedPersona = React.useMemo(() => 
+    detectPersona(impulses), 
+    [impulses]
+  );
+  
+  // Get persona insights
+  const personaInsight = React.useMemo(() => 
+    getPersonaInsights(impulses, detectedPersona), 
+    [impulses, detectedPersona]
   );
   
   // Get recent achievements for display
@@ -147,15 +162,15 @@ export default function HomeScreen() {
             <View style={{ gap: spacing.base, width: '100%' }}>
               {/* Monthly card skeleton */}
               <View style={{ gap: spacing.sm }}>
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ padding: spacing.base, borderRadius: spacing.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-                  {/* @ts-ignore */}
+                  {/* @ts-expect-error - Skeleton loading placeholder */}
                   <View style={{ gap: spacing.sm }}>
-                    {/* @ts-ignore */}
+                    {/* @ts-expect-error - Skeleton loading placeholder */}
                     <View style={{ height: 14, width: 120, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
-                    {/* @ts-ignore */}
+                    {/* @ts-expect-error - Skeleton loading placeholder */}
                     <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
-                    {/* @ts-ignore */}
+                    {/* @ts-expect-error - Skeleton loading placeholder */}
                     <View style={{ height: 14, width: '90%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
                   </View>
                 </View>
@@ -163,20 +178,20 @@ export default function HomeScreen() {
               {/* List card skeletons */}
               {/* @ts-ignore */}
               <View style={{ padding: spacing.base, borderRadius: spacing.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: 140, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '85%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
               </View>
               {/* @ts-ignore */}
               <View style={{ padding: spacing.base, borderRadius: spacing.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: 120, backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.sm }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '100%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8, marginBottom: spacing.xs }} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - Skeleton loading placeholder */}
                 <View style={{ height: 14, width: '70%', backgroundColor: 'rgba(125,125,125,0.15)', borderRadius: 8 }} />
               </View>
             </View>
@@ -184,7 +199,7 @@ export default function HomeScreen() {
         )}
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, dynamicStyles.title]}>ImpulseVault</Text>
+          <Text style={[styles.title, dynamicStyles.title]}>{appConfig.displayName}</Text>
           <Text style={[styles.subtitle, dynamicStyles.subtitle]}>Lock your impulses. Free your future.</Text>
         </View>
 
@@ -196,6 +211,18 @@ export default function HomeScreen() {
               <Text style={{ color: colors.error[800], fontWeight: typography.fontWeight.semibold }}>Try again</Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {/* Impulse Control Score */}
+        {impulses.length > 0 && (
+          <TerminalGlow color="primary" intensity="medium">
+            <ImpulseScoreCard />
+          </TerminalGlow>
+        )}
+        
+        {/* Persona Detection */}
+        {personaInsight.persona !== 'UNKNOWN' && personaInsight.confidence >= 30 && (
+          <PersonaCard insight={personaInsight} />
         )}
 
         {/* Monthly Savings Card */}

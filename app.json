@@ -7,6 +7,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#6366F1"
     },
     "assetBundlePatterns": [
@@ -14,7 +16,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.impulsevault.app"
+      "bundleIdentifier": "com.impulsevault.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "ImpulseVault accesses your photo library to attach images to impulses.",
+        "NSCameraUsageDescription": "ImpulseVault accesses your camera to take photos for impulses.",
+        "NSLocationWhenInUseUsageDescription": "ImpulseVault uses your location to provide insights about where you make impulse purchases.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ImpulseVault uses your location to provide insights about where you make impulse purchases."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +42,9 @@
           "intentFilters": [
             {
               "action": "android.intent.action.VIEW",
-              "category": ["android.intent.category.DEFAULT"],
+              "category": [
+                "android.intent.category.DEFAULT"
+              ],
               "data": {
                 "scheme": "impulsevault",
                 "host": "quick-add"
@@ -45,7 +55,31 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static",
+      "name": "ImpulseVault",
+      "shortName": "ImpulseVault",
+      "lang": "en",
+      "scope": "/",
+      "themeColor": "#6366F1",
+      "backgroundColor": "#ffffff",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "description": "Lock your impulses. Free your future.",
+      "icons": [
+        {
+          "src": "./assets/icon.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "./assets/icon.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
     },
     "plugins": [
       [
@@ -69,6 +103,14 @@
           "locationAlwaysPermission": "ImpulseVault uses your location to provide insights about where you make impulse purchases.",
           "locationWhenInUsePermission": "ImpulseVault uses your location to provide insights about where you make impulse purchases."
         }
+      ],
+      [
+        "sentry-expo",
+        {
+          "organization": "your-sentry-org",
+          "project": "your-sentry-project",
+          "url": "https://sentry.io/"
+        }
       ]
     ],
     "scheme": "impulsevault",
@@ -76,7 +118,7 @@
       "eas": {
         "projectId": "your-project-id"
       }
-    }
+    },
+    "sdkVersion": "51.0.0"
   }
 }
-

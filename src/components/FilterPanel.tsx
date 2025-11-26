@@ -19,9 +19,12 @@ interface FilterPanelProps {
 }
 
 const EMOTION_LABELS: Record<EmotionTag, string> = {
-  BORED: 'Bored',
-  STRESSED: 'Stressed',
+  HUNGER: 'Hunger',
+  BORED: 'Boredom',
+  STRESSED: 'Stress',
   FOMO: 'FOMO',
+  SALE: 'Sale',
+  PEER_INFLUENCE: 'Peer Influence',
   HAPPY: 'Happy',
   LONELY: 'Lonely',
   NONE: 'None',

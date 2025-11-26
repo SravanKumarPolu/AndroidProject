@@ -3,6 +3,9 @@ import { ImpulseCategory } from '@/types/impulse';
 export const CATEGORIES: ImpulseCategory[] = [
   'FOOD',
   'SHOPPING',
+  'TRAVEL',
+  'DIGITAL',
+  'GAMING',
   'ENTERTAINMENT',
   'TRADING',
   'CRYPTO',
@@ -14,6 +17,9 @@ export const CATEGORIES: ImpulseCategory[] = [
 export const CATEGORY_LABELS: Record<ImpulseCategory, string> = {
   FOOD: 'Food & Delivery',
   SHOPPING: 'Shopping',
+  TRAVEL: 'Travel',
+  DIGITAL: 'Digital',
+  GAMING: 'Gaming',
   ENTERTAINMENT: 'Entertainment',
   TRADING: 'Trading',
   CRYPTO: 'Crypto',
@@ -26,6 +32,9 @@ export const CATEGORY_LABELS: Record<ImpulseCategory, string> = {
 export const CATEGORY_ICONS: Record<ImpulseCategory, string> = {
   FOOD: '🍔',
   SHOPPING: '🛍️',
+  TRAVEL: '✈️',
+  DIGITAL: '💻',
+  GAMING: '🎮',
   ENTERTAINMENT: '🎬',
   TRADING: '📈',
   CRYPTO: '₿',
@@ -35,9 +44,12 @@ export const CATEGORY_ICONS: Record<ImpulseCategory, string> = {
 };
 
 export const EMOTION_LABELS: Record<string, string> = {
-  BORED: 'Bored',
-  STRESSED: 'Stressed',
+  HUNGER: 'Hunger',
+  BORED: 'Boredom',
+  STRESSED: 'Stress',
   FOMO: 'FOMO',
+  SALE: 'Sale',
+  PEER_INFLUENCE: 'Peer Influence',
   HAPPY: 'Happy',
   LONELY: 'Lonely',
   NONE: 'None',

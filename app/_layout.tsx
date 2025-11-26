@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack, useRouter, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import { checkAndSendContextualPrompt } from '@/services/smartPrompts';
 import { useImpulses } from '@/hooks/useImpulses';
@@ -14,6 +14,26 @@ import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { Toast } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { logger } from '@/utils/logger';
+import { validateAndLogEnv } from '@/utils/env';
+import { initializeApp } from '@/services/initialization';
+
+// Conditionally import expo-notifications only on native platforms
+let Notifications: typeof import('expo-notifications') | null = null;
+if (Platform.OS !== 'web') {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (error) {
+    console.warn('expo-notifications not available:', error);
+  }
+}
+
+// Validate environment variables at startup
+validateAndLogEnv();
+
+// Initialize app services
+initializeApp().catch(err => {
+  logger.error('Failed to initialize app services', err instanceof Error ? err : new Error(String(err)));
+});
 
 // Initialize Sentry if available
 let Sentry: any = null;
@@ -37,6 +57,11 @@ function RootLayoutContent() {
 
   // Handle notification taps
   useEffect(() => {
+    if (Platform.OS === 'web' || !Notifications) {
+      // On web, handle browser notifications differently if needed
+      return;
+    }
+
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
       
@@ -100,6 +125,40 @@ function RootLayoutContent() {
 
     return () => subscription.remove();
   }, [router]);
+
+  // Inject favicon for web (fixes purple square issue in development)
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      // Remove existing favicon links
+      const existingLinks = document.querySelectorAll('link[rel*="icon"]');
+      existingLinks.forEach(link => link.remove());
+
+      // Get the correct asset path
+      // In Expo web, assets are served from the root or /assets/
+      const getFaviconPath = () => {
+        // Try to get from window location
+        const baseUrl = window.location.origin;
+        // Expo serves assets from root in dev mode
+        return `${baseUrl}/assets/icon.png`;
+      };
+
+      // Add new favicon link
+      const link = document.createElement('link');
+      link.id = 'app-favicon';
+      link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = getFaviconPath();
+      document.head.appendChild(link);
+
+      // Also add as shortcut icon (for older browsers)
+      const shortcutLink = document.createElement('link');
+      shortcutLink.id = 'app-favicon-shortcut';
+      shortcutLink.rel = 'shortcut icon';
+      shortcutLink.type = 'image/png';
+      shortcutLink.href = getFaviconPath();
+      document.head.appendChild(shortcutLink);
+    }
+  }, []);
 
   // Send smart prompts when app opens and schedule daily prompts
   useEffect(() => {

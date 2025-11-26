@@ -3,8 +3,18 @@
  * Handles location permissions and tracking for impulses
  */
 
-import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 import { Alert } from 'react-native';
+
+// Conditionally import expo-location only on native platforms
+let Location: typeof import('expo-location') | null = null;
+if (Platform.OS !== 'web') {
+  try {
+    Location = require('expo-location');
+  } catch (error) {
+    console.warn('expo-location not available:', error);
+  }
+}
 
 export interface LocationData {
   latitude: number;
@@ -19,6 +29,37 @@ export interface LocationData {
  * Request location permissions
  */
 export async function requestLocationPermissions(): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    // On web, use browser geolocation API
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        Alert.alert(
+          'Location Permission',
+          'Geolocation is not supported by your browser.',
+          [{ text: 'OK' }]
+        );
+        resolve(false);
+        return;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        () => resolve(true),
+        () => {
+          Alert.alert(
+            'Location Permission',
+            'Location permission is needed to track where you make impulse purchases. You can enable it later in settings.',
+            [{ text: 'OK' }]
+          );
+          resolve(false);
+        }
+      );
+    });
+  }
+
+  if (!Location) {
+    return false;
+  }
+
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -40,6 +81,15 @@ export async function requestLocationPermissions(): Promise<boolean> {
  * Check if location permissions are granted
  */
 export async function hasLocationPermissions(): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    // On web, check if geolocation is available
+    return 'geolocation' in navigator;
+  }
+
+  if (!Location) {
+    return false;
+  }
+
   try {
     const { status } = await Location.getForegroundPermissionsAsync();
     return status === 'granted';
@@ -53,6 +103,73 @@ export async function hasLocationPermissions(): Promise<boolean> {
  * Get current location
  */
 export async function getCurrentLocation(): Promise<LocationData | null> {
+  if (Platform.OS === 'web') {
+    // Use browser geolocation API on web
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Try to reverse geocode using a web API (optional)
+          let address: string | undefined;
+          let city: string | undefined;
+          let country: string | undefined;
+
+          try {
+            // Using OpenStreetMap Nominatim API (free, no key required)
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+              {
+                headers: {
+                  'User-Agent': 'ImpulseVault/1.0.0',
+                },
+              }
+            );
+            const data = await response.json();
+            if (data.address) {
+              address = [
+                data.address.road,
+                data.address.house_number,
+              ].filter(Boolean).join(', ');
+              city = data.address.city || data.address.town || data.address.village;
+              country = data.address.country;
+            }
+          } catch (geocodeError) {
+            console.error('Error reverse geocoding:', geocodeError);
+            // Continue without address
+          }
+
+          resolve({
+            latitude,
+            longitude,
+            address,
+            city,
+            country,
+            timestamp: Date.now(),
+          });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          resolve(null);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 60000,
+        }
+      );
+    });
+  }
+
+  if (!Location) {
+    return null;
+  }
+
   try {
     const hasPermission = await hasLocationPermissions();
     if (!hasPermission) {

@@ -22,6 +22,7 @@ import { photos } from '@/services/photos';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { getCurrentLocation, hasLocationPermissions, formatLocation } from '@/services/location';
+import { SourceAppSelector } from '@/components/SourceAppSelector';
 
 export default function NewImpulseScreen() {
   const router = useRouter();
@@ -57,6 +58,7 @@ export default function NewImpulseScreen() {
   const [tempPhotoUri, setTempPhotoUri] = useState<string | undefined>();
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [sourceApp, setSourceApp] = useState<string | undefined>();
 
   // Auto-update cool-down when urgency changes
   useEffect(() => {
@@ -156,13 +158,14 @@ export default function NewImpulseScreen() {
         }
       }
       
-      // Create impulse with photo URI and location
+      // Create impulse with photo URI, location, and source app
       const newImpulse = await createImpulse({
         ...validation.data!,
         price: validation.data!.price ?? undefined,
         emotion: validation.data!.emotion ?? undefined,
         photoUri: finalPhotoUri,
         location: currentLocation || undefined,
+        sourceApp: sourceApp,
       });
       
       showSuccess('Impulse locked! Starting cooldown...');
@@ -319,9 +322,9 @@ export default function NewImpulseScreen() {
 
           {/* Emotion Selection (Optional) */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, dynamicStyles.sectionLabel]}>How are you feeling? (optional)</Text>
+            <Text style={[styles.sectionLabel, dynamicStyles.sectionLabel]}>Reason for the impulse (optional)</Text>
             <View style={styles.row}>
-              {(['BORED', 'STRESSED', 'FOMO', 'HAPPY', 'LONELY', 'NONE'] as EmotionTag[]).map((emo) => (
+              {(['HUNGER', 'BORED', 'STRESSED', 'FOMO', 'SALE', 'PEER_INFLUENCE', 'HAPPY', 'LONELY', 'NONE'] as EmotionTag[]).map((emo) => (
                 <Button
                   key={emo}
                   title={EMOTION_LABELS[emo]}
@@ -342,6 +345,15 @@ export default function NewImpulseScreen() {
               onImageRemoved={handlePhotoRemoved}
               currentImageUri={tempPhotoUri}
               disabled={loading}
+            />
+          </View>
+
+          {/* Source App Selection */}
+          <View style={styles.section}>
+            <SourceAppSelector
+              category={category}
+              selectedApp={sourceApp}
+              onSelect={setSourceApp}
             />
           </View>
 

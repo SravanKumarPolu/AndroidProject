@@ -6,6 +6,9 @@
 export type ImpulseCategory =
   | 'FOOD'
   | 'SHOPPING'
+  | 'TRAVEL'
+  | 'DIGITAL'
+  | 'GAMING'
   | 'ENTERTAINMENT'
   | 'TRADING'
   | 'CRYPTO'
@@ -13,11 +16,11 @@ export type ImpulseCategory =
   | 'SUBSCRIPTION'
   | 'OTHER';
 
-export type EmotionTag = 'BORED' | 'STRESSED' | 'FOMO' | 'HAPPY' | 'LONELY' | 'NONE';
+export type EmotionTag = 'HUNGER' | 'BORED' | 'STRESSED' | 'FOMO' | 'SALE' | 'PEER_INFLUENCE' | 'HAPPY' | 'LONELY' | 'NONE';
 
 export type UrgencyLevel = 'ESSENTIAL' | 'NICE_TO_HAVE' | 'IMPULSE';
 
-export type CoolDownPeriod = '5M' | '15M' | '30M' | '1H' | '6H' | '24H' | '3D';
+export type CoolDownPeriod = '10M' | '15M' | '30M' | '1H' | '2H' | '6H' | '24H' | '3D';
 
 export type ImpulseStatus = 'LOCKED' | 'CANCELLED' | 'EXECUTED';
 
